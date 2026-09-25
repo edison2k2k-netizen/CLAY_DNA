@@ -1,6 +1,6 @@
 // ============================================================
-// CLAY DNA 2.0
-// 개인 도자 작업 성향 분석 모듈
+// CLAY DNA 3.0
+// 개인 도자 작업 DNA 대시보드
 // ============================================================
 
 import {
@@ -49,11 +49,8 @@ const db =
 // ============================================================
 
 let dnaCurrentUser = null;
-
 let dnaWorks = [];
-
 let dnaAnalyses = [];
-
 let dnaProfile = null;
 
 
@@ -90,13 +87,10 @@ function showDNAToast(message) {
     }
 
     toast.textContent = message;
-
     toast.classList.add("show");
 
     setTimeout(() => {
-
         toast.classList.remove("show");
-
     }, 2500);
 }
 
@@ -116,16 +110,14 @@ if (auth) {
             if (!user) {
 
                 dnaWorks = [];
-
                 dnaAnalyses = [];
-
                 dnaProfile = null;
 
                 return;
             }
 
             console.log(
-                "CLAY DNA 로그인:",
+                "CLAY DNA 3.0 로그인:",
                 user.email
             );
 
@@ -138,7 +130,7 @@ if (auth) {
 
 
 // ============================================================
-// 작품 및 AI 분석 데이터 로드
+// 작품 + AI 분석 데이터
 // ============================================================
 
 async function loadDNAData() {
@@ -153,7 +145,6 @@ async function loadDNAData() {
     try {
 
         dnaWorks = [];
-
         dnaAnalyses = [];
 
 
@@ -238,13 +229,19 @@ async function loadDNAData() {
         }
 
 
+        dnaWorks.sort(
+            sortWorksByDate
+        );
+
+
         console.log(
             "CLAY DNA 작품:",
             dnaWorks.length
         );
 
+
         console.log(
-            "CLAY DNA AI 분석:",
+            "CLAY DNA 분석:",
             dnaAnalyses.length
         );
 
@@ -262,7 +259,59 @@ async function loadDNAData() {
 
 
 // ============================================================
-// 문자열을 배열로 변환
+// 날짜 정렬
+// ============================================================
+
+function sortWorksByDate(a, b) {
+
+    const dateA =
+        getWorkDate(a);
+
+    const dateB =
+        getWorkDate(b);
+
+
+    return dateA - dateB;
+
+}
+
+
+function getWorkDate(work) {
+
+    if (
+        work.createdAt &&
+        typeof work.createdAt.toDate === "function"
+    ) {
+
+        return work.createdAt
+            .toDate()
+            .getTime();
+
+    }
+
+
+    if (work.productionDate) {
+
+        const timestamp =
+            new Date(
+                work.productionDate
+            ).getTime();
+
+
+        if (!isNaN(timestamp)) {
+            return timestamp;
+        }
+
+    }
+
+
+    return 0;
+
+}
+
+
+// ============================================================
+// 문자열 처리
 // ============================================================
 
 function normalizeText(value) {
@@ -277,10 +326,10 @@ function normalizeText(value) {
 
     if (Array.isArray(value)) {
 
-        return value
-            .flatMap(item =>
+        return value.flatMap(
+            item =>
                 normalizeText(item)
-            );
+        );
 
     }
 
@@ -289,18 +338,15 @@ function normalizeText(value) {
 
         .split(/[,/|·•\n]+/)
 
-        .map(item =>
-            item.trim()
+        .map(
+            item =>
+                item.trim()
         )
 
         .filter(Boolean);
 
 }
 
-
-// ============================================================
-// 키워드 정리
-// ============================================================
 
 function cleanKeyword(value) {
 
@@ -310,20 +356,16 @@ function cleanKeyword(value) {
 
 
     let text =
-        String(value)
-            .trim();
+        String(value).trim();
 
 
-    // 너무 긴 문장은 핵심 단어만 추출
     if (
         text.length > 30
     ) {
 
-        const words =
-            text.split(/\s+/);
-
         text =
-            words
+            text
+                .split(/\s+/)
                 .slice(0, 3)
                 .join(" ");
 
@@ -336,7 +378,7 @@ function cleanKeyword(value) {
 
 
 // ============================================================
-// 빈도 계산
+// 빈도
 // ============================================================
 
 function addFrequency(
@@ -359,10 +401,6 @@ function addFrequency(
 }
 
 
-// ============================================================
-// 상위 항목
-// ============================================================
-
 function getTopItems(
     map,
     limit = 8
@@ -381,7 +419,6 @@ function getTopItems(
             ([name, count]) => ({
 
                 name,
-
                 count
 
             })
@@ -391,27 +428,22 @@ function getTopItems(
 
 
 // ============================================================
-// DNA 키워드 추출
+// DNA 추출
 // ============================================================
 
 function extractKeywords(
-    analyses,
     field
 ) {
 
     const map = {};
 
 
-    analyses.forEach(
+    dnaAnalyses.forEach(
         analysis => {
 
-            const values =
-                normalizeText(
-                    analysis[field]
-                );
-
-
-            values.forEach(
+            normalizeText(
+                analysis[field]
+            ).forEach(
                 value => {
 
                     addFrequency(
@@ -434,38 +466,23 @@ function extractKeywords(
 }
 
 
-// ============================================================
-// DNA TAG 추출
-// ============================================================
-
-function extractTags(
-    analyses
-) {
+function extractTags() {
 
     const map = {};
 
 
-    analyses.forEach(
+    dnaAnalyses.forEach(
         analysis => {
 
-            const tags =
-                normalizeText(
-                    analysis.dnaTags
-                );
-
-
-            tags.forEach(
+            normalizeText(
+                analysis.dnaTags
+            ).forEach(
                 tag => {
 
-                    const keyword =
-                        cleanKeyword(tag);
-
-                    if (!keyword) {
-                        return;
-                    }
-
-                    map[keyword] =
-                        (map[keyword] || 0) + 1;
+                    addFrequency(
+                        map,
+                        tag
+                    );
 
                 }
             );
@@ -483,17 +500,10 @@ function extractTags(
 
 
 // ============================================================
-// DNA SCORE
+// 평균 점수
 // ============================================================
 
 function calculateDNAScore() {
-
-    if (
-        dnaAnalyses.length === 0
-    ) {
-        return 0;
-    }
-
 
     const scores =
         dnaAnalyses
@@ -532,115 +542,37 @@ function calculateDNAScore() {
 
 
 // ============================================================
-// 개인 작업 성향 문장
-// ============================================================
-
-function createDNASummary(
-    forms,
-    techniques,
-    materials,
-    expressions,
-    tags
-) {
-
-    const form =
-        forms[0]
-            ? forms[0].name
-            : "다양한 형태";
-
-
-    const technique =
-        techniques[0]
-            ? techniques[0].name
-            : "다양한 기법";
-
-
-    const material =
-        materials[0]
-            ? materials[0].name
-            : "다양한 재료";
-
-
-    const expression =
-        expressions[0]
-            ? expressions[0].name
-            : "다양한 표현";
-
-
-    const tag =
-        tags[0]
-            ? tags[0].name
-            : "개성 있는 표현";
-
-
-    return `
-현재 등록된 작품 ${dnaWorks.length}개와
-AI 분석 ${dnaAnalyses.length}개를 기준으로
-<strong>${escapeHTML(form)}</strong> 형태,
-<strong>${escapeHTML(technique)}</strong> 기법,
-<strong>${escapeHTML(material)}</strong> 재료,
-<strong>${escapeHTML(expression)}</strong> 표현이
-주요 작업 성향으로 나타나고 있습니다.
-
-반복적으로 관찰되는 대표 DNA 키워드는
-<strong>${escapeHTML(tag)}</strong>입니다.
-`;
-
-}
-
-
-// ============================================================
-// DNA PROFILE 생성
+// DNA 프로필
 // ============================================================
 
 function buildDNAProfile() {
 
     const forms =
         extractKeywords(
-            dnaAnalyses,
             "formCharacter"
         );
 
 
     const techniques =
         extractKeywords(
-            dnaAnalyses,
             "techniqueCharacter"
         );
 
 
     const materials =
         extractKeywords(
-            dnaAnalyses,
             "materialCharacter"
         );
 
 
     const expressions =
         extractKeywords(
-            dnaAnalyses,
             "expression"
         );
 
 
     const tags =
-        extractTags(
-            dnaAnalyses
-        );
-
-
-    const score =
-        calculateDNAScore();
-
-
-    const summary =
-        createDNASummary(
-            forms,
-            techniques,
-            materials,
-            expressions,
-            tags
-        );
+        extractTags();
 
 
     return {
@@ -651,19 +583,14 @@ function buildDNAProfile() {
         analyzedWorks:
             dnaAnalyses.length,
 
-        score,
+        score:
+            calculateDNAScore(),
 
         forms,
-
         techniques,
-
         materials,
-
         expressions,
-
-        tags,
-
-        summary
+        tags
 
     };
 
@@ -671,7 +598,170 @@ function buildDNAProfile() {
 
 
 // ============================================================
-// DNA 프로필 저장
+// AI 분석 매칭
+// ============================================================
+
+function getAnalysisForWork(
+    workId
+) {
+
+    return dnaAnalyses.find(
+        analysis =>
+            analysis.workId === workId
+    );
+
+}
+
+
+// ============================================================
+// 작품별 DNA
+// ============================================================
+
+function getWorkDNA(work) {
+
+    const analysis =
+        getAnalysisForWork(
+            work.id
+        );
+
+
+    if (!analysis) {
+
+        return {
+
+            score: 0,
+
+            tags: []
+
+        };
+
+    }
+
+
+    return {
+
+        score:
+            Number(
+                analysis.score
+            ) || 0,
+
+        tags:
+            normalizeText(
+                analysis.dnaTags
+            ).slice(0, 5)
+
+    };
+
+}
+
+
+// ============================================================
+// 작업 변천 데이터
+// ============================================================
+
+function buildTimeline() {
+
+    return dnaWorks
+
+        .filter(
+            work =>
+                getAnalysisForWork(
+                    work.id
+                )
+        )
+
+        .map(
+            work => {
+
+                const analysis =
+                    getAnalysisForWork(
+                        work.id
+                    );
+
+
+                return {
+
+                    id:
+                        work.id,
+
+                    title:
+                        work.title ||
+                        "작품",
+
+                    date:
+                        work.productionDate ||
+                        "",
+
+                    score:
+                        Number(
+                            analysis.score
+                        ) || 0,
+
+                    tags:
+                        normalizeText(
+                            analysis.dnaTags
+                        ).slice(0, 3)
+
+                };
+
+            }
+        );
+
+}
+
+
+// ============================================================
+// 작업 성향 요약
+// ============================================================
+
+function createSummary(
+    profile
+) {
+
+    const form =
+        profile.forms[0]
+            ? profile.forms[0].name
+            : "다양한 형태";
+
+
+    const technique =
+        profile.techniques[0]
+            ? profile.techniques[0].name
+            : "다양한 기법";
+
+
+    const material =
+        profile.materials[0]
+            ? profile.materials[0].name
+            : "다양한 재료";
+
+
+    const expression =
+        profile.expressions[0]
+            ? profile.expressions[0].name
+            : "다양한 표현";
+
+
+    return `
+현재 분석된 작품에서는
+<strong>${escapeHTML(form)}</strong>,
+<strong>${escapeHTML(technique)}</strong>,
+<strong>${escapeHTML(material)}</strong>의 특징이
+상대적으로 많이 나타납니다.
+
+표현 측면에서는
+<strong>${escapeHTML(expression)}</strong> 성향이
+관찰되고 있습니다.
+
+작품이 추가될수록 이 프로필은 새로운 분석 결과를 반영하여
+자동으로 업데이트됩니다.
+`;
+
+}
+
+
+// ============================================================
+// DNA 저장
 // ============================================================
 
 async function saveDNAProfile(
@@ -712,7 +802,7 @@ async function saveDNAProfile(
                     serverTimestamp(),
 
                 version:
-                    "2.0"
+                    "3.0"
 
             },
             {
@@ -726,15 +816,14 @@ async function saveDNAProfile(
 
 
         console.log(
-            "CLAY DNA 저장 완료:",
-            profile
+            "CLAY DNA 프로필 저장 완료"
         );
 
 
         if (showMessage) {
 
             showDNAToast(
-                "CLAY DNA 프로필이 업데이트되었습니다."
+                "CLAY DNA가 업데이트되었습니다."
             );
 
         }
@@ -746,7 +835,7 @@ async function saveDNAProfile(
     } catch (error) {
 
         console.error(
-            "CLAY DNA 저장 오류:",
+            "DNA 저장 오류:",
             error
         );
 
@@ -768,18 +857,16 @@ async function saveDNAProfile(
 
 
 // ============================================================
-// AI 분석 완료 후 자동 갱신
+// 외부 자동 갱신
 // ============================================================
 
 window.refreshCLAYDNA =
     async function () {
 
-        if (
-            !dnaCurrentUser
-        ) {
+        if (!dnaCurrentUser) {
 
             console.log(
-                "CLAY DNA 자동 갱신 대기"
+                "DNA 자동 갱신: 로그인 필요"
             );
 
             return false;
@@ -804,9 +891,7 @@ window.refreshCLAYDNA =
 window.openCLAYDNA =
     async function () {
 
-        if (
-            !dnaCurrentUser
-        ) {
+        if (!dnaCurrentUser) {
 
             showDNAToast(
                 "로그인 후 CLAY DNA를 확인할 수 있습니다."
@@ -839,12 +924,16 @@ function createDNAModal() {
             "clayDNAModal"
         )
     ) {
+
         return;
+
     }
 
 
     const modal =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
 
     modal.id =
@@ -874,7 +963,7 @@ function createDNAModal() {
                     </h2>
 
                     <p>
-                        나의 도자 작업 성향 분석
+                        나의 도자 작업 성향
                     </p>
 
                 </div>
@@ -886,7 +975,6 @@ function createDNAModal() {
                 </button>
 
             </div>
-
 
             <div
                 id="clayDNAContent"
@@ -938,10 +1026,145 @@ function closeDNAModal() {
 
 
     if (modal) {
-
         modal.remove();
-
     }
+
+}
+
+
+// ============================================================
+// RADAR 차트
+// ============================================================
+
+function renderRadar(profile) {
+
+    const categories = [
+
+        {
+            label: "형태",
+            value: profile.forms.length
+        },
+
+        {
+            label: "기법",
+            value: profile.techniques.length
+        },
+
+        {
+            label: "재료",
+            value: profile.materials.length
+        },
+
+        {
+            label: "표현",
+            value: profile.expressions.length
+        },
+
+        {
+            label: "태그",
+            value: profile.tags.length
+        }
+
+    ];
+
+
+    const max =
+        Math.max(
+            ...categories.map(
+                item => item.value
+            ),
+            1
+        );
+
+
+    return `
+
+        <div class="dna-radar">
+
+            <div class="dna-radar-center">
+                DNA
+            </div>
+
+            ${categories
+                .map(
+                    (item, index) => {
+
+                        const angle =
+                            index *
+                            (360 /
+                            categories.length) -
+                            90;
+
+                        const radius =
+                            110;
+
+                        const x =
+                            50 +
+                            Math.cos(
+                                angle *
+                                Math.PI /
+                                180
+                            ) *
+                            38;
+
+                        const y =
+                            50 +
+                            Math.sin(
+                                angle *
+                                Math.PI /
+                                180
+                            ) *
+                            38;
+
+
+                        const size =
+                            Math.max(
+                                12,
+                                Math.round(
+                                    (
+                                        item.value /
+                                        max
+                                    ) * 30
+                                )
+                            );
+
+
+                        return `
+
+                            <div
+                                class="dna-radar-node"
+                                style="
+                                    left:${x}%;
+                                    top:${y}%;
+                                    width:${size}px;
+                                    height:${size}px;
+                                "
+                                title="${escapeHTML(
+                                    item.label
+                                )}: ${item.value}">
+                            </div>
+
+                            <div
+                                class="dna-radar-label"
+                                style="
+                                    left:${x}%;
+                                    top:${y}%;
+                                "
+                            >
+                                ${escapeHTML(
+                                    item.label
+                                )}
+                            </div>
+
+                        `;
+
+                    }
+                )
+                .join("")}
+
+        </div>
+
+    `;
 
 }
 
@@ -950,9 +1173,7 @@ function closeDNAModal() {
 // DNA BAR
 // ============================================================
 
-function renderDNAItems(
-    items
-) {
+function renderBars(items) {
 
     if (
         !items ||
@@ -960,8 +1181,8 @@ function renderDNAItems(
     ) {
 
         return `
-            <div class="dna-list-empty">
-                아직 데이터가 없습니다.
+            <div class="dna-empty-small">
+                데이터 없음
             </div>
         `;
 
@@ -971,18 +1192,20 @@ function renderDNAItems(
     const max =
         Math.max(
             ...items.map(
-                item => item.count
+                item =>
+                    item.count
             )
         );
 
 
     return items
+        .slice(0, 6)
         .map(
             item => {
 
                 const percent =
                     Math.max(
-                        15,
+                        12,
                         Math.round(
                             (
                                 item.count /
@@ -1017,7 +1240,9 @@ function renderDNAItems(
 
                             <div
                                 class="dna-bar-fill"
-                                style="width:${percent}%">
+                                style="
+                                    width:${percent}%;
+                                ">
                             </div>
 
                         </div>
@@ -1034,7 +1259,132 @@ function renderDNAItems(
 
 
 // ============================================================
-// DNA 화면 출력
+// TAG
+// ============================================================
+
+function renderTags(tags) {
+
+    if (
+        !tags ||
+        tags.length === 0
+    ) {
+
+        return `
+            <span class="dna-empty-small">
+                태그 없음
+            </span>
+        `;
+
+    }
+
+
+    return tags
+        .map(
+            tag => `
+
+                <span
+                    class="dna-tag">
+
+                    #${escapeHTML(
+                        tag.name
+                    )}
+
+                    <small>
+                        ${tag.count}
+                    </small>
+
+                </span>
+
+            `
+        )
+        .join("");
+
+}
+
+
+// ============================================================
+// 작품별 DNA
+// ============================================================
+
+function renderWorkDNA() {
+
+    const timeline =
+        buildTimeline();
+
+
+    if (
+        timeline.length === 0
+    ) {
+
+        return `
+            <div class="dna-empty-small">
+                분석된 작품이 없습니다.
+            </div>
+        `;
+
+    }
+
+
+    return timeline
+        .slice(-8)
+        .reverse()
+        .map(
+            work => `
+
+                <div
+                    class="dna-work-item">
+
+                    <div
+                        class="dna-work-main">
+
+                        <strong>
+                            ${escapeHTML(
+                                work.title
+                            )}
+                        </strong>
+
+                        <span>
+                            ${escapeHTML(
+                                work.date
+                            )}
+                        </span>
+
+                    </div>
+
+                    <div
+                        class="dna-work-score">
+
+                        ${work.score}
+
+                    </div>
+
+                    <div
+                        class="dna-work-tags">
+
+                        ${
+                            work.tags
+                                .map(
+                                    tag =>
+                                        `#${escapeHTML(
+                                            tag
+                                        )}`
+                                )
+                                .join(" ")
+                        }
+
+                    </div>
+
+                </div>
+
+            `
+        )
+        .join("");
+
+}
+
+
+// ============================================================
+// 전체 화면
 // ============================================================
 
 function renderDNAProfile() {
@@ -1071,12 +1421,12 @@ function renderDNAProfile() {
                 </div>
 
                 <h3>
-                    아직 CLAY DNA가 만들어지지 않았습니다.
+                    아직 CLAY DNA가 없습니다.
                 </h3>
 
                 <p>
-                    작품을 등록하고 AI 분석 결과를 저장하면
-                    나만의 도자 작업 DNA가 만들어집니다.
+                    작품을 등록하고 AI 분석을 저장하면
+                    개인 작업 DNA가 생성됩니다.
                 </p>
 
             </div>
@@ -1092,157 +1442,197 @@ function renderDNAProfile() {
 
         <!-- SCORE -->
 
-        <div class="dna-score-card">
+        <section
+            class="dna-hero">
 
-            <div class="dna-score-label">
-                CLAY DNA SCORE
+            <div>
+
+                <div
+                    class="dna-score-label">
+                    PERSONAL CLAY DNA
+                </div>
+
+                <h3>
+                    나의 도자 작업 DNA
+                </h3>
+
+                <p>
+                    ${profile.analyzedWorks}개 작품 분석
+                </p>
+
             </div>
 
-            <div class="dna-score">
+
+            <div
+                class="dna-score-big">
+
                 ${profile.score}
+
             </div>
 
-            <div class="dna-score-desc">
-                ${profile.analyzedWorks}개 작품 분석
+        </section>
+
+
+        <!-- RADAR -->
+
+        <section
+            class="dna-dashboard-card">
+
+            <div
+                class="dna-section-title">
+
+                작업 성향 구조
+
             </div>
 
-        </div>
+            ${renderRadar(
+                profile
+            )}
+
+        </section>
 
 
         <!-- SUMMARY -->
 
-        <div class="dna-summary-card">
+        <section
+            class="dna-summary-card">
 
-            <div class="dna-section-title">
-                나의 작업 성향
+            <div
+                class="dna-section-title">
+
+                현재 작업 성향
+
             </div>
 
-            <div class="dna-summary">
-                ${profile.summary}
+            <div
+                class="dna-summary">
+
+                ${createSummary(
+                    profile
+                )}
+
             </div>
 
-        </div>
+        </section>
 
 
-        <!-- DNA GRID -->
+        <!-- DNA CATEGORIES -->
 
-        <div class="dna-grid">
+        <div
+            class="dna-grid">
 
-            <div class="dna-section-card">
+            <section
+                class="dna-section-card">
 
-                <div class="dna-section-title">
+                <div
+                    class="dna-section-title">
                     형태 DNA
                 </div>
 
-                <div class="dna-bars">
-                    ${renderDNAItems(
-                        profile.forms
-                    )}
-                </div>
+                ${renderBars(
+                    profile.forms
+                )}
 
-            </div>
+            </section>
 
 
-            <div class="dna-section-card">
+            <section
+                class="dna-section-card">
 
-                <div class="dna-section-title">
+                <div
+                    class="dna-section-title">
                     기법 DNA
                 </div>
 
-                <div class="dna-bars">
-                    ${renderDNAItems(
-                        profile.techniques
-                    )}
-                </div>
+                ${renderBars(
+                    profile.techniques
+                )}
 
-            </div>
+            </section>
 
 
-            <div class="dna-section-card">
+            <section
+                class="dna-section-card">
 
-                <div class="dna-section-title">
+                <div
+                    class="dna-section-title">
                     재료 DNA
                 </div>
 
-                <div class="dna-bars">
-                    ${renderDNAItems(
-                        profile.materials
-                    )}
-                </div>
+                ${renderBars(
+                    profile.materials
+                )}
 
-            </div>
+            </section>
 
 
-            <div class="dna-section-card">
+            <section
+                class="dna-section-card">
 
-                <div class="dna-section-title">
+                <div
+                    class="dna-section-title">
                     표현 DNA
                 </div>
 
-                <div class="dna-bars">
-                    ${renderDNAItems(
-                        profile.expressions
-                    )}
-                </div>
+                ${renderBars(
+                    profile.expressions
+                )}
 
-            </div>
+            </section>
 
         </div>
 
 
         <!-- TAG -->
 
-        <div class="dna-tags-card">
+        <section
+            class="dna-tags-card">
 
-            <div class="dna-section-title">
-                반복되는 DNA TAG
+            <div
+                class="dna-section-title">
+
+                대표 DNA TAG
+
             </div>
 
-            <div class="dna-tags">
+            <div
+                class="dna-tags">
 
-                ${
-                    profile.tags.length
-
-                    ?
-
+                ${renderTags(
                     profile.tags
-                        .map(
-                            item => `
-
-                                <span
-                                    class="dna-tag">
-
-                                    #${escapeHTML(
-                                        item.name
-                                    )}
-
-                                    <small>
-                                        ${item.count}
-                                    </small>
-
-                                </span>
-
-                            `
-                        )
-                        .join("")
-
-                    :
-
-                    `
-                        <span>
-                            아직 태그가 없습니다.
-                        </span>
-                    `
-                }
+                )}
 
             </div>
 
-        </div>
+        </section>
+
+
+        <!-- WORK TIMELINE -->
+
+        <section
+            class="dna-dashboard-card">
+
+            <div
+                class="dna-section-title">
+
+                작품별 DNA
+
+            </div>
+
+            <div
+                class="dna-work-list">
+
+                ${renderWorkDNA()}
+
+            </div>
+
+        </section>
 
 
         <!-- DATA -->
 
-        <div class="dna-info">
+        <div
+            class="dna-info">
 
             <div>
 
@@ -1257,7 +1647,7 @@ function renderDNAProfile() {
 
             <div>
 
-                AI 분석 작품
+                AI 분석
 
                 <strong>
                     ${profile.analyzedWorks}
@@ -1268,14 +1658,12 @@ function renderDNAProfile() {
         </div>
 
 
-        <!-- SAVE -->
-
         <button
             type="button"
             id="saveDNAProfileButton"
             class="dna-save-button">
 
-            CLAY DNA 프로필 저장
+            CLAY DNA 저장
 
         </button>
 
@@ -1312,11 +1700,6 @@ function renderDNAProfile() {
 
 function connectDNAButtons() {
 
-    console.log(
-        "CLAY DNA 버튼 연결 시작"
-    );
-
-
     document
         .querySelectorAll(
             '[data-feature="dna"]'
@@ -1326,7 +1709,7 @@ function connectDNAButtons() {
 
                 button.addEventListener(
                     "click",
-                    function (event) {
+                    event => {
 
                         event.preventDefault();
 
@@ -1348,7 +1731,7 @@ function connectDNAButtons() {
 
                 button.addEventListener(
                     "click",
-                    function (event) {
+                    event => {
 
                         event.preventDefault();
 
@@ -1362,7 +1745,7 @@ function connectDNAButtons() {
 
 
     console.log(
-        "CLAY DNA 버튼 연결 완료"
+        "CLAY DNA 3.0 버튼 연결 완료"
     );
 
 }
@@ -1384,7 +1767,9 @@ function createDNAStyle() {
 
 
     const style =
-        document.createElement("style");
+        document.createElement(
+            "style"
+        );
 
 
     style.id =
@@ -1396,15 +1781,11 @@ function createDNAStyle() {
         .clay-dna-modal {
 
             position: fixed;
-
             inset: 0;
-
             z-index: 99999;
 
             display: flex;
-
             align-items: center;
-
             justify-content: center;
 
             padding: 20px;
@@ -1415,11 +1796,10 @@ function createDNAStyle() {
         .clay-dna-overlay {
 
             position: absolute;
-
             inset: 0;
 
             background:
-                rgba(0,0,0,0.65);
+                rgba(0,0,0,.68);
 
         }
 
@@ -1429,22 +1809,22 @@ function createDNAStyle() {
             position: relative;
 
             width:
-                min(920px, 100%);
+                min(960px, 100%);
 
             max-height:
-                90vh;
+                92vh;
 
             overflow-y: auto;
 
             background:
-                #ffffff;
+                #fff;
 
             border-radius:
                 24px;
 
             box-shadow:
-                0 20px 60px
-                rgba(0,0,0,0.25);
+                0 25px 80px
+                rgba(0,0,0,.28);
 
             padding:
                 28px;
@@ -1463,13 +1843,13 @@ function createDNAStyle() {
                 flex-start;
 
             border-bottom:
-                1px solid #eeeeee;
+                1px solid #eee;
 
             padding-bottom:
                 20px;
 
             margin-bottom:
-                24px;
+                20px;
 
         }
 
@@ -1483,10 +1863,7 @@ function createDNAStyle() {
                 2px;
 
             color:
-                #888888;
-
-            margin-bottom:
-                6px;
+                #888;
 
         }
 
@@ -1494,7 +1871,7 @@ function createDNAStyle() {
         .clay-dna-header h2 {
 
             margin:
-                0;
+                5px 0;
 
             font-size:
                 30px;
@@ -1505,10 +1882,10 @@ function createDNAStyle() {
         .clay-dna-header p {
 
             margin:
-                6px 0 0;
+                0;
 
             color:
-                #777777;
+                #777;
 
         }
 
@@ -1522,13 +1899,13 @@ function createDNAStyle() {
                 40px;
 
             border:
-                none;
+                0;
 
             border-radius:
                 50%;
 
             background:
-                #f2f2f2;
+                #f1f1f1;
 
             font-size:
                 25px;
@@ -1539,19 +1916,25 @@ function createDNAStyle() {
         }
 
 
-        .dna-score-card {
+        .dna-hero {
 
-            text-align:
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
                 center;
 
             padding:
-                30px;
+                28px;
 
             border-radius:
-                20px;
+                22px;
 
             background:
-                #f5f1ea;
+                #f4f0e9;
 
             margin-bottom:
                 18px;
@@ -1559,52 +1942,65 @@ function createDNAStyle() {
         }
 
 
+        .dna-hero h3 {
+
+            margin:
+                6px 0;
+
+            font-size:
+                25px;
+
+        }
+
+
+        .dna-hero p {
+
+            margin:
+                0;
+
+            color:
+                #777;
+
+        }
+
+
         .dna-score-label {
 
             font-size:
-                12px;
+                11px;
 
             letter-spacing:
                 2px;
 
             color:
-                #777777;
+                #777;
 
         }
 
 
-        .dna-score {
+        .dna-score-big {
 
             font-size:
                 64px;
 
             font-weight:
-                700;
-
-            margin:
-                8px 0;
+                800;
 
         }
 
 
-        .dna-score-desc {
-
-            color:
-                #777777;
-
-        }
-
-
-        .dna-summary-card {
+        .dna-dashboard-card,
+        .dna-summary-card,
+        .dna-tags-card {
 
             padding:
                 22px;
 
             border:
-                1px solid #eeeeee;
+                1px solid #eee;
 
             border-radius:
-                18px;
+                20px;
 
             margin-bottom:
                 18px;
@@ -1618,7 +2014,7 @@ function createDNAStyle() {
                 700;
 
             margin-bottom:
-                14px;
+                16px;
 
         }
 
@@ -1626,10 +2022,179 @@ function createDNAStyle() {
         .dna-summary {
 
             line-height:
-                1.8;
+                1.85;
 
             color:
-                #555555;
+                #555;
+
+        }
+
+
+        .dna-radar {
+
+            position:
+                relative;
+
+            width:
+                min(420px, 90vw);
+
+            height:
+                300px;
+
+            margin:
+                0 auto;
+
+            border-radius:
+                50%;
+
+            background:
+                radial-gradient(
+                    circle,
+                    #fafafa 0%,
+                    #fff 65%
+                );
+
+        }
+
+
+        .dna-radar::before,
+        .dna-radar::after {
+
+            content:
+                "";
+
+            position:
+                absolute;
+
+            left:
+                50%;
+
+            top:
+                50%;
+
+            transform:
+                translate(-50%, -50%);
+
+            border:
+                1px solid #ddd;
+
+            border-radius:
+                50%;
+
+        }
+
+
+        .dna-radar::before {
+
+            width:
+                170px;
+
+            height:
+                170px;
+
+        }
+
+
+        .dna-radar::after {
+
+            width:
+                280px;
+
+            height:
+                280px;
+
+        }
+
+
+        .dna-radar-center {
+
+            position:
+                absolute;
+
+            left:
+                50%;
+
+            top:
+                50%;
+
+            transform:
+                translate(-50%, -50%);
+
+            z-index:
+                3;
+
+            width:
+                55px;
+
+            height:
+                55px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            border-radius:
+                50%;
+
+            background:
+                #222;
+
+            color:
+                #fff;
+
+            font-size:
+                11px;
+
+            font-weight:
+                700;
+
+        }
+
+
+        .dna-radar-node {
+
+            position:
+                absolute;
+
+            transform:
+                translate(-50%, -50%);
+
+            border-radius:
+                50%;
+
+            background:
+                #333;
+
+            z-index:
+                4;
+
+        }
+
+
+        .dna-radar-label {
+
+            position:
+                absolute;
+
+            transform:
+                translate(-50%, -50%);
+
+            font-size:
+                12px;
+
+            font-weight:
+                600;
+
+            z-index:
+                5;
+
+            white-space:
+                nowrap;
 
         }
 
@@ -1653,14 +2218,14 @@ function createDNAStyle() {
 
         .dna-section-card {
 
+            padding:
+                20px;
+
             border:
-                1px solid #eeeeee;
+                1px solid #eee;
 
             border-radius:
                 18px;
-
-            padding:
-                20px;
 
         }
 
@@ -1689,9 +2254,6 @@ function createDNAStyle() {
             justify-content:
                 space-between;
 
-            gap:
-                10px;
-
             margin-bottom:
                 6px;
 
@@ -1704,24 +2266,21 @@ function createDNAStyle() {
         .dna-bar-top strong {
 
             color:
-                #888888;
+                #888;
 
         }
 
 
         .dna-bar-track {
 
-            width:
-                100%;
-
             height:
                 7px;
 
+            background:
+                #eee;
+
             border-radius:
                 10px;
-
-            background:
-                #eeeeee;
 
             overflow:
                 hidden;
@@ -1734,25 +2293,11 @@ function createDNAStyle() {
             height:
                 100%;
 
+            background:
+                #333;
+
             border-radius:
                 10px;
-
-            background:
-                #333333;
-
-        }
-
-
-        .dna-tags-card {
-
-            border:
-                1px solid #eeeeee;
-
-            border-radius:
-                18px;
-
-            padding:
-                20px;
 
         }
 
@@ -1776,9 +2321,6 @@ function createDNAStyle() {
             display:
                 inline-flex;
 
-            align-items:
-                center;
-
             gap:
                 5px;
 
@@ -1789,7 +2331,7 @@ function createDNAStyle() {
                 999px;
 
             background:
-                #f2f2f2;
+                #f1f1f1;
 
             font-size:
                 13px;
@@ -1800,7 +2342,111 @@ function createDNAStyle() {
         .dna-tag small {
 
             color:
-                #888888;
+                #888;
+
+        }
+
+
+        .dna-work-list {
+
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            gap:
+                10px;
+
+        }
+
+
+        .dna-work-item {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                1fr 60px;
+
+            gap:
+                10px;
+
+            padding:
+                15px;
+
+            border-radius:
+                14px;
+
+            background:
+                #f7f7f7;
+
+        }
+
+
+        .dna-work-main {
+
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            gap:
+                5px;
+
+        }
+
+
+        .dna-work-main strong {
+
+            font-size:
+                14px;
+
+        }
+
+
+        .dna-work-main span {
+
+            font-size:
+                11px;
+
+            color:
+                #888;
+
+        }
+
+
+        .dna-work-score {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            font-size:
+                22px;
+
+            font-weight:
+                700;
+
+        }
+
+
+        .dna-work-tags {
+
+            grid-column:
+                1 / -1;
+
+            color:
+                #666;
+
+            font-size:
+                12px;
 
         }
 
@@ -1816,7 +2462,7 @@ function createDNAStyle() {
             gap:
                 12px;
 
-            margin-top:
+            margin-bottom:
                 18px;
 
         }
@@ -1827,17 +2473,17 @@ function createDNAStyle() {
             padding:
                 16px;
 
+            text-align:
+                center;
+
             border-radius:
                 14px;
 
             background:
                 #f7f7f7;
 
-            text-align:
-                center;
-
             color:
-                #777777;
+                #777;
 
         }
 
@@ -1847,14 +2493,14 @@ function createDNAStyle() {
             display:
                 block;
 
+            margin-top:
+                5px;
+
             font-size:
                 24px;
 
             color:
-                #222222;
-
-            margin-top:
-                5px;
+                #222;
 
         }
 
@@ -1864,29 +2510,26 @@ function createDNAStyle() {
             width:
                 100%;
 
-            margin-top:
-                18px;
-
             padding:
                 15px;
 
             border:
-                none;
+                0;
 
             border-radius:
                 14px;
 
             background:
-                #222222;
+                #222;
 
             color:
-                #ffffff;
-
-            font-size:
-                15px;
+                #fff;
 
             cursor:
                 pointer;
+
+            font-size:
+                15px;
 
         }
 
@@ -1904,8 +2547,14 @@ function createDNAStyle() {
 
         .dna-empty-icon {
 
+            width:
+                80px;
+
+            height:
+                80px;
+
             display:
-                inline-flex;
+                flex;
 
             align-items:
                 center;
@@ -1913,11 +2562,8 @@ function createDNAStyle() {
             justify-content:
                 center;
 
-            width:
-                80px;
-
-            height:
-                80px;
+            margin:
+                0 auto 20px;
 
             border-radius:
                 50%;
@@ -1928,42 +2574,45 @@ function createDNAStyle() {
             font-weight:
                 700;
 
-            margin-bottom:
-                20px;
-
         }
 
 
-        .dna-empty h3 {
-
-            margin-bottom:
-                10px;
-
-        }
-
-
-        .dna-empty p {
+        .dna-empty-small {
 
             color:
-                #777777;
+                #999;
 
-            line-height:
-                1.7;
+            font-size:
+                13px;
 
         }
 
 
-        @media (
-            max-width: 650px
-        ) {
+        @media(max-width:650px) {
 
             .clay-dna-panel {
 
                 padding:
-                    20px;
+                    18px;
 
                 border-radius:
                     18px;
+
+            }
+
+
+            .dna-hero {
+
+                padding:
+                    22px;
+
+            }
+
+
+            .dna-score-big {
+
+                font-size:
+                    48px;
 
             }
 
@@ -1976,10 +2625,10 @@ function createDNAStyle() {
             }
 
 
-            .dna-score {
+            .dna-radar {
 
-                font-size:
-                    52px;
+                height:
+                    270px;
 
             }
 
@@ -2005,5 +2654,5 @@ connectDNAButtons();
 
 
 console.log(
-    "CLAY DNA 2.0 모듈 준비 완료"
+    "CLAY DNA 3.0 모듈 준비 완료"
 );
