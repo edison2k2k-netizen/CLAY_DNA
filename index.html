@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="CLAY DNA - AI 도자기 창작 파트너"
+    >
+
+    <title>CLAY DNA | AI 도자기 창작 파트너</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body>
+
+    <!-- =========================
+         앱 전체
+    ========================== -->
+
+    <div id="app">
+
+        <!-- =========================
+             헤더
+        ========================== -->
+
+        <header class="app-header">
+
+            <div class="logo-area">
+
+                <div class="logo-icon">
+                    🏺
+                </div>
+
+                <div class="logo-text">
+
+                    <h1>CLAY DNA</h1>
+
+                    <p>
+                        AI 도자기 창작 파트너
+                    </p>
+
+                </div>
+
+            </div>
+
+            <button
+                id="menuButton"
+                class="menu-button"
+                type="button"
+            >
+                ☰
+            </button>
+
+        </header>
+
+
+        <!-- =========================
+             메인 화면
+        ========================== -->
+
+        <main>
+
+            <!-- 히어로 영역 -->
+
+            <section class="hero-section">
+
+                <div class="hero-icon">
+                    🏺
+                </div>
+
+                <h2>
+                    나의 도자기를<br>
+                    AI와 함께 발전시켜 보세요.
+                </h2>
+
+                <p>
+                    작품을 기록하고 분석하고<br>
+                    새로운 가능성을 발견합니다.
+                </p>
+
+                <button
+                    id="addWorkButton"
+                    class="primary-button"
+                    type="button"
+                >
+                    ＋ 작품 등록하기
+                </button>
+
+            </section>
+
+
+            <!-- 기능 메뉴 -->
+
+            <section class="feature-section">
+
+                <div class="section-title">
+
+                    <h2>
+                        CLAY DNA
+                    </h2>
+
+                    <p>
+                        나의 도자기 창작 공간
+                    </p>
+
+                </div>
+
+
+                <div class="feature-grid">
+
+                    <!-- 작품 -->
+
+                    <button
+                        class="feature-card"
+                        type="button"
+                        data-feature="works"
+                    >
+
+                        <span class="feature-icon">
+                            🏺
+                        </span>
+
+                        <span class="feature-title">
+                            작품
+                        </span>
+
+                        <span class="feature-description">
+                            나의 도자기 기록
+                        </span>
+
+                    </button>
+
+
+                    <!-- AI 분석 -->
+
+                    <button
+                        class="feature-card"
+                        type="button"
+                        data-feature="analyze"
+                    >
+
+                        <span class="feature-icon">
+                            🔍
+                        </span>
+
+                        <span class="feature-title">
+                            AI 분석
+                        </span>
+
+                        <span class="feature-description">
+                            작품의 특징 분석
+                        </span>
+
+                    </button>
+
+
+                    <!-- DNA -->
+
+                    <button
+                        class="feature-card"
+                        type="button"
+                        data-feature="dna"
+                    >
+
+                        <span class="feature-icon">
+                            🧬
+                        </span>
+
+                        <span class="feature-title">
+                            나의 DNA
+                        </span>
+
+                        <span class="feature-description">
+                            나만의 창작 스타일
+                        </span>
+
+                    </button>
+
+
+                    <!-- AI BUILD -->
+
+                    <button
+                        class="feature-card"
+                        type="button"
+                        data-feature="build"
+                    >
+
+                        <span class="feature-icon">
+                            💻
+                        </span>
+
+                        <span class="feature-title">
+                            AI BUILD
+                        </span>
+
+                        <span class="feature-description">
+                            말로 프로그램 만들기
+                        </span>
+
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- 오늘의 상태 -->
+
+            <section class="status-section">
+
+                <div class="status-card">
+
+                    <div class="status-number">
+                        0
+                    </div>
+
+                    <div class="status-label">
+                        등록된 작품
+                    </div>
+
+                </div>
+
+
+                <div class="status-card">
+
+                    <div class="status-number">
+                        0
+                    </div>
+
+                    <div class="status-label">
+                        AI 분석
+                    </div>
+
+                </div>
+
+
+                <div class="status-card">
+
+                    <div class="status-number">
+                        0
+                    </div>
+
+                    <div class="status-label">
+                        DNA 데이터
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+
+        <!-- =========================
+             하단 네비게이션
+        ========================== -->
+
+        <nav class="bottom-navigation">
+
+            <button
+                class="nav-item active"
+                type="button"
+                data-nav="home"
+            >
+
+                <span>
+                    🏠
+                </span>
+
+                <small>
+                    홈
+                </small>
+
+            </button>
+
+
+            <button
+                class="nav-item"
+                type="button"
+                data-nav="works"
+            >
+
+                <span>
+                    🏺
+                </span>
+
+                <small>
+                    작품
+                </small>
+
+            </button>
+
+
+            <button
+                class="nav-item"
+                type="button"
+                data-nav="ai"
+            >
+
+                <span>
+                    ✨
+                </span>
+
+                <small>
+                    AI
+                </small>
+
+            </button>
+
+
+            <button
+                class="nav-item"
+                type="button"
+                data-nav="dna"
+            >
+
+                <span>
+                    🧬
+                </span>
+
+                <small>
+                    DNA
+                </small>
+
+            </button>
+
+
+            <button
+                class="nav-item"
+                type="button"
+                data-nav="my"
+            >
+
+                <span>
+                    👤
+                </span>
+
+                <small>
+                    MY
+                </small>
+
+            </button>
+
+        </nav>
+
+
+        <!-- =========================
+             알림 메시지
+        ========================== -->
+
+        <div
+            id="toast"
+            class="toast"
+        >
+        </div>
+
+    </div>
+
+
+    <!-- JavaScript -->
+
+    <script src="app.js"></script>
+
+</body>
+</html>

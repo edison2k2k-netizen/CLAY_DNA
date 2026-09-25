@@ -1,0 +1,642 @@
+/* =========================================
+   CLAY DNA
+   기본 설정
+========================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+
+:root {
+
+    --background: #f7f3ed;
+
+    --surface: #ffffff;
+
+    --surface-soft: #f1ebe3;
+
+    --text: #302a25;
+
+    --text-light: #756d66;
+
+    --border: #e4ddd5;
+
+    --primary: #7b5542;
+
+    --primary-dark: #5e3f31;
+
+    --shadow:
+        0 8px 30px rgba(60, 45, 35, 0.08);
+
+}
+
+
+body {
+
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Noto Sans KR",
+        sans-serif;
+
+    background: var(--background);
+
+    color: var(--text);
+
+    min-height: 100vh;
+
+}
+
+
+/* =========================================
+   앱
+========================================= */
+
+#app {
+
+    width: 100%;
+
+    max-width: 900px;
+
+    min-height: 100vh;
+
+    margin: 0 auto;
+
+    background: var(--background);
+
+    padding-bottom: 90px;
+
+}
+
+
+/* =========================================
+   헤더
+========================================= */
+
+.app-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 22px 24px;
+
+    background:
+        rgba(255, 255, 255, 0.9);
+
+    border-bottom:
+        1px solid var(--border);
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 100;
+
+    backdrop-filter: blur(10px);
+
+}
+
+
+.logo-area {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+}
+
+
+.logo-icon {
+
+    width: 46px;
+
+    height: 46px;
+
+    border-radius: 14px;
+
+    background: var(--surface-soft);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 25px;
+
+}
+
+
+.logo-text h1 {
+
+    font-size: 20px;
+
+    letter-spacing: 1px;
+
+}
+
+
+.logo-text p {
+
+    font-size: 12px;
+
+    color: var(--text-light);
+
+    margin-top: 3px;
+
+}
+
+
+.menu-button {
+
+    border: none;
+
+    background: transparent;
+
+    font-size: 24px;
+
+    cursor: pointer;
+
+}
+
+
+/* =========================================
+   메인
+========================================= */
+
+main {
+
+    padding: 24px;
+
+}
+
+
+/* =========================================
+   히어로
+========================================= */
+
+.hero-section {
+
+    background: var(--surface);
+
+    border-radius: 28px;
+
+    padding: 50px 30px;
+
+    text-align: center;
+
+    box-shadow: var(--shadow);
+
+}
+
+
+.hero-icon {
+
+    font-size: 68px;
+
+    margin-bottom: 22px;
+
+}
+
+
+.hero-section h2 {
+
+    font-size: 30px;
+
+    line-height: 1.4;
+
+    margin-bottom: 18px;
+
+}
+
+
+.hero-section p {
+
+    color: var(--text-light);
+
+    line-height: 1.7;
+
+    margin-bottom: 30px;
+
+}
+
+
+/* =========================================
+   버튼
+========================================= */
+
+.primary-button {
+
+    border: none;
+
+    background: var(--primary);
+
+    color: white;
+
+    border-radius: 14px;
+
+    padding: 15px 24px;
+
+    font-size: 16px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+}
+
+
+.primary-button:hover {
+
+    background: var(--primary-dark);
+
+    transform: translateY(-2px);
+
+}
+
+
+.primary-button:active {
+
+    transform: translateY(0);
+
+}
+
+
+/* =========================================
+   기능 영역
+========================================= */
+
+.feature-section {
+
+    margin-top: 35px;
+
+}
+
+
+.section-title {
+
+    margin-bottom: 16px;
+
+}
+
+
+.section-title h2 {
+
+    font-size: 22px;
+
+}
+
+
+.section-title p {
+
+    margin-top: 5px;
+
+    color: var(--text-light);
+
+    font-size: 14px;
+
+}
+
+
+/* =========================================
+   기능 카드
+========================================= */
+
+.feature-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 14px;
+
+}
+
+
+.feature-card {
+
+    border: 1px solid var(--border);
+
+    background: var(--surface);
+
+    border-radius: 20px;
+
+    padding: 22px;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 7px;
+
+    transition: 0.2s;
+
+}
+
+
+.feature-card:hover {
+
+    transform: translateY(-3px);
+
+    box-shadow: var(--shadow);
+
+}
+
+
+.feature-icon {
+
+    font-size: 30px;
+
+    margin-bottom: 5px;
+
+}
+
+
+.feature-title {
+
+    font-size: 17px;
+
+    font-weight: 700;
+
+}
+
+
+.feature-description {
+
+    font-size: 13px;
+
+    color: var(--text-light);
+
+}
+
+
+/* =========================================
+   상태
+========================================= */
+
+.status-section {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 12px;
+
+    margin-top: 25px;
+
+}
+
+
+.status-card {
+
+    background: var(--surface);
+
+    border-radius: 18px;
+
+    padding: 20px 10px;
+
+    text-align: center;
+
+    border: 1px solid var(--border);
+
+}
+
+
+.status-number {
+
+    font-size: 26px;
+
+    font-weight: 700;
+
+}
+
+
+.status-label {
+
+    margin-top: 5px;
+
+    color: var(--text-light);
+
+    font-size: 12px;
+
+}
+
+
+/* =========================================
+   하단 네비게이션
+========================================= */
+
+.bottom-navigation {
+
+    position: fixed;
+
+    bottom: 0;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    width: 100%;
+
+    max-width: 900px;
+
+    height: 72px;
+
+    background:
+        rgba(255, 255, 255, 0.96);
+
+    border-top:
+        1px solid var(--border);
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, 1fr);
+
+    z-index: 200;
+
+    backdrop-filter: blur(10px);
+
+}
+
+
+.nav-item {
+
+    border: none;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 4px;
+
+    color: var(--text-light);
+
+}
+
+
+.nav-item span {
+
+    font-size: 20px;
+
+}
+
+
+.nav-item small {
+
+    font-size: 11px;
+
+}
+
+
+.nav-item.active {
+
+    color: var(--primary);
+
+    font-weight: 700;
+
+}
+
+
+/* =========================================
+   토스트
+========================================= */
+
+.toast {
+
+    position: fixed;
+
+    left: 50%;
+
+    bottom: 95px;
+
+    transform:
+        translate(-50%, 20px);
+
+    background: #302a25;
+
+    color: white;
+
+    padding: 12px 20px;
+
+    border-radius: 12px;
+
+    font-size: 14px;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition: 0.25s;
+
+    z-index: 500;
+
+}
+
+
+.toast.show {
+
+    opacity: 1;
+
+    transform:
+        translate(-50%, 0);
+
+}
+
+
+/* =========================================
+   모바일
+========================================= */
+
+@media (max-width: 600px) {
+
+    main {
+
+        padding: 16px;
+
+    }
+
+
+    .app-header {
+
+        padding: 17px 18px;
+
+    }
+
+
+    .hero-section {
+
+        padding: 40px 20px;
+
+        border-radius: 22px;
+
+    }
+
+
+    .hero-section h2 {
+
+        font-size: 24px;
+
+    }
+
+
+    .feature-grid {
+
+        gap: 10px;
+
+    }
+
+
+    .feature-card {
+
+        padding: 17px;
+
+    }
+
+
+    .feature-icon {
+
+        font-size: 26px;
+
+    }
+
+
+    .status-section {
+
+        gap: 8px;
+
+    }
+
+
+    .status-card {
+
+        padding: 15px 5px;
+
+    }
+
+}
