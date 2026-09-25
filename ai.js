@@ -1440,7 +1440,21 @@ async function saveAIAnalysis() {
             "AI 분석 결과 저장 완료:",
             analysisData
         );
+// ============================================================
+// AI 분석 완료 후 CLAY DNA 자동 갱신
+// ============================================================
 
+if (
+    typeof window.refreshCLAYDNA === "function"
+) {
+
+    await window.refreshCLAYDNA();
+
+    console.log(
+        "AI 분석 → CLAY DNA 자동 갱신 완료"
+    );
+
+}
 
         if (button) {
 
