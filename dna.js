@@ -473,45 +473,52 @@ function createDNASummary(
 // DNA 프로필 저장
 // ============================================================
 
-async function saveDNAProfile() {
+async function saveDNAProfile(showMessage = true) {
 
     if (!dnaCurrentUser || !db) {
-        return;
+        return false;
     }
 
     try {
 
-        const profile =
-            buildDNAProfile();
+        const profile = buildDNAProfile();
 
-        const profileRef =
-            doc(
-                db,
-                "users",
-                dnaCurrentUser.uid,
-                "dna",
-                "profile"
-            );
+        const profileRef = doc(
+            db,
+            "users",
+            dnaCurrentUser.uid,
+            "dna",
+            "profile"
+        );
 
         await setDoc(
             profileRef,
             {
                 ...profile,
                 updatedAt: serverTimestamp(),
-                version: "1.0"
+                version: "1.1"
+            },
+            {
+                merge: true
             }
         );
 
         dnaProfile = profile;
 
-        showDNAToast(
-            "CLAY DNA 프로필이 저장되었습니다."
-        );
-
         console.log(
-            "CLAY DNA 저장 완료:",
+            "CLAY DNA 자동 업데이트 완료:",
             profile
         );
+
+        if (showMessage) {
+
+            showDNAToast(
+                "CLAY DNA 프로필이 업데이트되었습니다."
+            );
+
+        }
+
+        return true;
 
     } catch (error) {
 
@@ -520,9 +527,15 @@ async function saveDNAProfile() {
             error
         );
 
-        showDNAToast(
-            "DNA 저장 중 오류가 발생했습니다."
-        );
+        if (showMessage) {
+
+            showDNAToast(
+                "DNA 저장 중 오류가 발생했습니다."
+            );
+
+        }
+
+        return false;
 
     }
 
