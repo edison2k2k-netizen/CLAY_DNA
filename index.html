@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -19,7 +21,9 @@
         rel="stylesheet"
         href="style.css"
     >
+
 </head>
+
 
 <body>
 
@@ -28,6 +32,7 @@
     ========================== -->
 
     <div id="app">
+
 
         <!-- =========================
              헤더
@@ -53,6 +58,7 @@
 
             </div>
 
+
             <button
                 id="menuButton"
                 class="menu-button"
@@ -64,11 +70,13 @@
         </header>
 
 
+
         <!-- =========================
              메인 화면
         ========================== -->
 
         <main>
+
 
             <!-- 히어로 영역 -->
 
@@ -78,15 +86,18 @@
                     🏺
                 </div>
 
+
                 <h2>
                     나의 도자기를<br>
                     AI와 함께 발전시켜 보세요.
                 </h2>
 
+
                 <p>
                     작품을 기록하고 분석하고<br>
                     새로운 가능성을 발견합니다.
                 </p>
+
 
                 <button
                     id="addWorkButton"
@@ -97,6 +108,7 @@
                 </button>
 
             </section>
+
 
 
             <!-- 기능 메뉴 -->
@@ -116,7 +128,9 @@
                 </div>
 
 
+
                 <div class="feature-grid">
+
 
                     <!-- 작품 -->
 
@@ -139,6 +153,7 @@
                         </span>
 
                     </button>
+
 
 
                     <!-- AI 분석 -->
@@ -164,6 +179,7 @@
                     </button>
 
 
+
                     <!-- DNA -->
 
                     <button
@@ -185,6 +201,7 @@
                         </span>
 
                     </button>
+
 
 
                     <!-- AI BUILD -->
@@ -214,9 +231,11 @@
             </section>
 
 
+
             <!-- 오늘의 상태 -->
 
             <section class="status-section">
+
 
                 <div class="status-card">
 
@@ -231,6 +250,7 @@
                 </div>
 
 
+
                 <div class="status-card">
 
                     <div class="status-number">
@@ -242,6 +262,7 @@
                     </div>
 
                 </div>
+
 
 
                 <div class="status-card">
@@ -261,11 +282,13 @@
         </main>
 
 
+
         <!-- =========================
              하단 네비게이션
         ========================== -->
 
         <nav class="bottom-navigation">
+
 
             <button
                 class="nav-item active"
@@ -282,6 +305,7 @@
                 </small>
 
             </button>
+
 
 
             <button
@@ -301,6 +325,7 @@
             </button>
 
 
+
             <button
                 class="nav-item"
                 type="button"
@@ -318,6 +343,7 @@
             </button>
 
 
+
             <button
                 class="nav-item"
                 type="button"
@@ -333,6 +359,7 @@
                 </small>
 
             </button>
+
 
 
             <button
@@ -354,6 +381,7 @@
         </nav>
 
 
+
         <!-- =========================
              알림 메시지
         ========================== -->
@@ -364,12 +392,24 @@
         >
         </div>
 
+
     </div>
 
 
-    <!-- JavaScript -->
 
-    <script src="app.js"></script>
+    <!-- =========================
+         CLAY DNA JavaScript
+         
+         type="module"을 사용합니다.
+         Firebase SDK는 app.js에서 불러옵니다.
+    ========================== -->
+
+    <script
+        type="module"
+        src="app.js"
+    ></script>
+
 
 </body>
+
 </html>
