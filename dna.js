@@ -823,6 +823,26 @@ function renderDNAProfile() {
 
 }
 
+// ============================================================
+// 외부에서 DNA 자동 갱신
+// ============================================================
+
+window.refreshCLAYDNA = async function () {
+
+    if (!dnaCurrentUser) {
+
+        console.log(
+            "CLAY DNA 자동 갱신 대기: 로그인 필요"
+        );
+
+        return false;
+    }
+
+    await loadDNAData();
+
+    return await saveDNAProfile(false);
+
+};
 
 // ============================================================
 // DNA 항목 출력
