@@ -1,6 +1,6 @@
 // ============================================================
 // CLAY DNA
-// Firebase + 인증 + 작품 등록 + Firestore 작품 관리
+// Firebase + 인증 + 작품 등록 + 작품 목록 + 상세보기 + 수정 + 삭제
 // ============================================================
 
 
@@ -25,6 +25,7 @@ import {
     collection,
     addDoc,
     getDocs,
+    updateDoc,
     deleteDoc,
     doc,
     query,
@@ -77,6 +78,8 @@ const db =
 let currentUser = null;
 
 let works = [];
+
+let selectedWork = null;
 
 
 // ============================================================
@@ -285,10 +288,6 @@ function createAuthPanel() {
     document.body.appendChild(panel);
 
 
-    // ========================================================
-    // 인증 화면 스타일
-    // ========================================================
-
     const style =
         document.createElement("style");
 
@@ -408,10 +407,6 @@ function createAuthPanel() {
 
     document.head.appendChild(style);
 
-
-    // ========================================================
-    // 인증 버튼 연결
-    // ========================================================
 
     document
         .getElementById("authCloseButton")
@@ -708,6 +703,8 @@ async function logoutUser() {
 
         works = [];
 
+        selectedWork = null;
+
         updateWorkCount();
 
         showToast(
@@ -830,6 +827,8 @@ onAuthStateChanged(
 
             works = [];
 
+            selectedWork = null;
+
             updateWorkCount();
 
         }
@@ -877,6 +876,9 @@ function getFirebaseErrorMessage(error) {
         case "auth/operation-not-allowed":
             return "Firebase Authentication 설정을 확인하세요.";
 
+        case "permission-denied":
+            return "Firebase 권한 설정을 확인하세요.";
+
         default:
             return (
                 "Firebase 오류가 발생했습니다. " +
@@ -889,7 +891,7 @@ function getFirebaseErrorMessage(error) {
 
 
 // ============================================================
-// 18. 작품 등록 화면 스타일
+// 18. 작품 관련 스타일
 // ============================================================
 
 function createWorkStyle() {
@@ -912,6 +914,10 @@ function createWorkStyle() {
 
 
     style.textContent = `
+
+        /* =========================================
+           작품 등록
+        ========================================= */
 
         #workModal {
             position: fixed;
@@ -1011,6 +1017,11 @@ function createWorkStyle() {
             cursor: not-allowed;
         }
 
+
+        /* =========================================
+           작품 목록
+        ========================================= */
+
         #worksModal {
             position: fixed;
             inset: 0;
@@ -1030,7 +1041,7 @@ function createWorkStyle() {
         }
 
         .works-box {
-            width: min(620px, 100%);
+            width: min(680px, 100%);
             max-height: 90vh;
             overflow-y: auto;
             background: white;
@@ -1056,6 +1067,11 @@ function createWorkStyle() {
             font-size: 28px;
             cursor: pointer;
         }
+
+
+        /* =========================================
+           작품 카드
+        ========================================= */
 
         .work-item {
             border: 1px solid #e3e3e3;
@@ -1084,14 +1100,38 @@ function createWorkStyle() {
             white-space: pre-wrap;
         }
 
+        .work-item-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .work-detail-button,
+        .work-edit-button,
         .work-delete-button {
-            margin-top: 12px;
-            padding: 7px 12px;
-            border: 1px solid #ddd;
+            padding: 8px 12px;
             border-radius: 8px;
-            background: white;
             cursor: pointer;
             font-size: 12px;
+        }
+
+        .work-detail-button {
+            border: 1px solid #333;
+            background: #333;
+            color: white;
+        }
+
+        .work-edit-button {
+            border: 1px solid #777;
+            background: white;
+            color: #333;
+        }
+
+        .work-delete-button {
+            border: 1px solid #ddd;
+            background: white;
+            color: #777;
         }
 
         .works-empty {
@@ -1110,6 +1150,193 @@ function createWorkStyle() {
             color: white;
             cursor: pointer;
             font-size: 14px;
+        }
+
+
+        /* =========================================
+           작품 상세
+        ========================================= */
+
+        #workDetailModal {
+            position: fixed;
+            inset: 0;
+            z-index: 10002;
+            display: none;
+        }
+
+        .work-detail-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.48);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .work-detail-box {
+            width: min(560px, 100%);
+            max-height: 90vh;
+            overflow-y: auto;
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-sizing: border-box;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+
+        .work-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .work-detail-header h2 {
+            margin: 0;
+            font-size: 21px;
+        }
+
+        .work-detail-close {
+            border: 0;
+            background: transparent;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .detail-row {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .detail-description {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7f7f7;
+            border-radius: 12px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+
+        .detail-edit-button {
+            width: 100%;
+            margin-top: 18px;
+            padding: 13px;
+            border: 0;
+            border-radius: 10px;
+            background: #333;
+            color: white;
+            cursor: pointer;
+        }
+
+
+        /* =========================================
+           수정창
+        ========================================= */
+
+        #workEditModal {
+            position: fixed;
+            inset: 0;
+            z-index: 10003;
+            display: none;
+        }
+
+        .work-edit-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.48);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .work-edit-box {
+            width: min(520px, 100%);
+            max-height: 92vh;
+            overflow-y: auto;
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-sizing: border-box;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+
+        .work-edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .work-edit-header h2 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .work-edit-close {
+            border: 0;
+            background: transparent;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .work-edit-form label {
+            display: block;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .work-edit-form input,
+        .work-edit-form select,
+        .work-edit-form textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .work-edit-form textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .work-edit-save-button {
+            width: 100%;
+            margin-top: 22px;
+            padding: 14px;
+            border: 0;
+            border-radius: 10px;
+            background: #333;
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .work-edit-save-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
     `;
@@ -1384,7 +1611,7 @@ function closeWorkModal() {
 
 
 // ============================================================
-// 22. 작품 저장 처리
+// 22. 작품 저장
 // ============================================================
 
 async function handleWorkSubmit(event) {
@@ -1537,11 +1764,17 @@ async function handleWorkSubmit(event) {
         closeWorkModal();
 
 
-        document
-            .getElementById(
+        const form =
+            document.getElementById(
                 "workForm"
-            )
-            .reset();
+            );
+
+
+        if (form) {
+
+            form.reset();
+
+        }
 
 
         await loadWorks();
@@ -1849,7 +2082,7 @@ async function openWorksModal() {
 
 
 // ============================================================
-// 27. 작품 목록 화면 닫기
+// 27. 작품 목록 닫기
 // ============================================================
 
 function closeWorksModal() {
@@ -1871,7 +2104,7 @@ function closeWorksModal() {
 
 
 // ============================================================
-// 28. 작품 목록 화면 렌더링
+// 28. 작품 목록 렌더링
 // ============================================================
 
 function renderWorks() {
@@ -2005,13 +2238,35 @@ function renderWorks() {
                         }
 
 
-                        <button
-                            type="button"
-                            class="work-delete-button"
-                            data-work-id="${work.id}"
-                        >
-                            작품 삭제
-                        </button>
+                        <div class="work-item-buttons">
+
+                            <button
+                                type="button"
+                                class="work-detail-button"
+                                data-work-id="${work.id}"
+                            >
+                                상세보기
+                            </button>
+
+
+                            <button
+                                type="button"
+                                class="work-edit-button"
+                                data-work-id="${work.id}"
+                            >
+                                수정
+                            </button>
+
+
+                            <button
+                                type="button"
+                                class="work-delete-button"
+                                data-work-id="${work.id}"
+                            >
+                                삭제
+                            </button>
+
+                        </div>
 
                     </div>
 
@@ -2019,6 +2274,46 @@ function renderWorks() {
 
             })
             .join("");
+
+
+    list
+        .querySelectorAll(
+            ".work-detail-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    openWorkDetail(
+                        button.dataset.workId
+                    );
+
+                }
+            );
+
+        });
+
+
+    list
+        .querySelectorAll(
+            ".work-edit-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    openWorkEditModal(
+                        button.dataset.workId
+                    );
+
+                }
+            );
+
+        });
 
 
     list
@@ -2031,12 +2326,8 @@ function renderWorks() {
                 "click",
                 async () => {
 
-                    const workId =
-                        button.dataset.workId;
-
-
                     await deleteWork(
-                        workId
+                        button.dataset.workId
                     );
 
                 }
@@ -2079,7 +2370,802 @@ function escapeHtml(value) {
 
 
 // ============================================================
-// 30. 작품 삭제
+// 30. 작품 상세 화면 생성
+// ============================================================
+
+function createWorkDetailModal() {
+
+    if (
+        document.getElementById(
+            "workDetailModal"
+        )
+    ) {
+
+        return;
+    }
+
+
+    createWorkStyle();
+
+
+    const modal =
+        document.createElement("div");
+
+    modal.id =
+        "workDetailModal";
+
+
+    modal.innerHTML = `
+
+        <div class="work-detail-overlay">
+
+            <div class="work-detail-box">
+
+                <div class="work-detail-header">
+
+                    <h2>
+                        작품 상세
+                    </h2>
+
+                    <button
+                        type="button"
+                        id="workDetailCloseButton"
+                        class="work-detail-close"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="workDetailContent"
+                ></div>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(modal);
+
+
+    document
+        .getElementById(
+            "workDetailCloseButton"
+        )
+        .addEventListener(
+            "click",
+            closeWorkDetail
+        );
+
+}
+
+
+// ============================================================
+// 31. 작품 상세 열기
+// ============================================================
+
+function openWorkDetail(workId) {
+
+    const work =
+        works.find(
+            item =>
+                item.id === workId
+        );
+
+
+    if (!work) {
+
+        showToast(
+            "작품 정보를 찾을 수 없습니다."
+        );
+
+        return;
+    }
+
+
+    selectedWork =
+        work;
+
+
+    createWorkDetailModal();
+
+
+    const content =
+        document.getElementById(
+            "workDetailContent"
+        );
+
+
+    if (!content) {
+
+        return;
+    }
+
+
+    const title =
+        escapeHtml(
+            work.title || "이름 없는 작품"
+        );
+
+
+    const productionDate =
+        escapeHtml(
+            work.productionDate || "미입력"
+        );
+
+
+    const type =
+        escapeHtml(
+            work.type || "미입력"
+        );
+
+
+    const clay =
+        escapeHtml(
+            work.clay || "미입력"
+        );
+
+
+    const technique =
+        escapeHtml(
+            work.technique || "미입력"
+        );
+
+
+    const description =
+        escapeHtml(
+            work.description || "등록된 설명이 없습니다."
+        );
+
+
+    content.innerHTML = `
+
+        <div class="detail-row">
+
+            <div class="detail-label">
+                작품명
+            </div>
+
+            <div class="detail-value">
+                ${title}
+            </div>
+
+        </div>
+
+
+        <div class="detail-row">
+
+            <div class="detail-label">
+                제작일
+            </div>
+
+            <div class="detail-value">
+                ${productionDate}
+            </div>
+
+        </div>
+
+
+        <div class="detail-row">
+
+            <div class="detail-label">
+                작품 종류
+            </div>
+
+            <div class="detail-value">
+                ${type}
+            </div>
+
+        </div>
+
+
+        <div class="detail-row">
+
+            <div class="detail-label">
+                사용 흙
+            </div>
+
+            <div class="detail-value">
+                ${clay}
+            </div>
+
+        </div>
+
+
+        <div class="detail-row">
+
+            <div class="detail-label">
+                제작 기법
+            </div>
+
+            <div class="detail-value">
+                ${technique}
+            </div>
+
+        </div>
+
+
+        <div class="detail-description">
+
+            <div class="detail-label">
+                작품 설명
+            </div>
+
+            <div class="detail-value">
+                ${description}
+            </div>
+
+        </div>
+
+
+        <button
+            type="button"
+            id="detailEditButton"
+            class="detail-edit-button"
+        >
+            이 작품 수정하기
+        </button>
+
+    `;
+
+
+    document
+        .getElementById(
+            "detailEditButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                closeWorkDetail();
+
+                openWorkEditModal(
+                    work.id
+                );
+
+            }
+        );
+
+
+    const modal =
+        document.getElementById(
+            "workDetailModal"
+        );
+
+
+    modal.style.display =
+        "block";
+
+}
+
+
+// ============================================================
+// 32. 작품 상세 닫기
+// ============================================================
+
+function closeWorkDetail() {
+
+    const modal =
+        document.getElementById(
+            "workDetailModal"
+        );
+
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
+
+    }
+
+}
+
+
+// ============================================================
+// 33. 작품 수정창 생성
+// ============================================================
+
+function createWorkEditModal() {
+
+    if (
+        document.getElementById(
+            "workEditModal"
+        )
+    ) {
+
+        return;
+    }
+
+
+    createWorkStyle();
+
+
+    const modal =
+        document.createElement("div");
+
+    modal.id =
+        "workEditModal";
+
+
+    modal.innerHTML = `
+
+        <div class="work-edit-overlay">
+
+            <div class="work-edit-box">
+
+                <div class="work-edit-header">
+
+                    <h2>
+                        ✏️ 작품 수정
+                    </h2>
+
+                    <button
+                        type="button"
+                        id="workEditCloseButton"
+                        class="work-edit-close"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <form
+                    id="workEditForm"
+                    class="work-edit-form"
+                >
+
+                    <label for="editWorkTitle">
+                        작품명
+                    </label>
+
+                    <input
+                        id="editWorkTitle"
+                        type="text"
+                        required
+                    >
+
+
+                    <label for="editWorkDate">
+                        제작일
+                    </label>
+
+                    <input
+                        id="editWorkDate"
+                        type="date"
+                    >
+
+
+                    <label for="editWorkType">
+                        작품 종류
+                    </label>
+
+                    <select id="editWorkType">
+
+                        <option value="">
+                            선택하세요
+                        </option>
+
+                        <option value="항아리">
+                            항아리
+                        </option>
+
+                        <option value="컵">
+                            컵
+                        </option>
+
+                        <option value="접시">
+                            접시
+                        </option>
+
+                        <option value="화병">
+                            화병
+                        </option>
+
+                        <option value="조형물">
+                            조형물
+                        </option>
+
+                        <option value="생활도자">
+                            생활도자
+                        </option>
+
+                        <option value="기타">
+                            기타
+                        </option>
+
+                    </select>
+
+
+                    <label for="editWorkClay">
+                        사용 흙
+                    </label>
+
+                    <input
+                        id="editWorkClay"
+                        type="text"
+                    >
+
+
+                    <label for="editWorkTechnique">
+                        제작 기법
+                    </label>
+
+                    <input
+                        id="editWorkTechnique"
+                        type="text"
+                    >
+
+
+                    <label for="editWorkDescription">
+                        작품 설명
+                    </label>
+
+                    <textarea
+                        id="editWorkDescription"
+                    ></textarea>
+
+
+                    <button
+                        id="workEditSaveButton"
+                        class="work-edit-save-button"
+                        type="submit"
+                    >
+                        수정 저장하기
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(modal);
+
+
+    document
+        .getElementById(
+            "workEditCloseButton"
+        )
+        .addEventListener(
+            "click",
+            closeWorkEditModal
+        );
+
+
+    document
+        .getElementById(
+            "workEditForm"
+        )
+        .addEventListener(
+            "submit",
+            handleWorkEditSubmit
+        );
+
+}
+
+
+// ============================================================
+// 34. 작품 수정창 열기
+// ============================================================
+
+function openWorkEditModal(workId) {
+
+    const work =
+        works.find(
+            item =>
+                item.id === workId
+        );
+
+
+    if (!work) {
+
+        showToast(
+            "수정할 작품을 찾을 수 없습니다."
+        );
+
+        return;
+    }
+
+
+    selectedWork =
+        work;
+
+
+    createWorkEditModal();
+
+
+    document
+        .getElementById(
+            "editWorkTitle"
+        )
+        .value =
+        work.title || "";
+
+
+    document
+        .getElementById(
+            "editWorkDate"
+        )
+        .value =
+        work.productionDate || "";
+
+
+    document
+        .getElementById(
+            "editWorkType"
+        )
+        .value =
+        work.type || "";
+
+
+    document
+        .getElementById(
+            "editWorkClay"
+        )
+        .value =
+        work.clay || "";
+
+
+    document
+        .getElementById(
+            "editWorkTechnique"
+        )
+        .value =
+        work.technique || "";
+
+
+    document
+        .getElementById(
+            "editWorkDescription"
+        )
+        .value =
+        work.description || "";
+
+
+    const modal =
+        document.getElementById(
+            "workEditModal"
+        );
+
+
+    modal.style.display =
+        "block";
+
+}
+
+
+// ============================================================
+// 35. 작품 수정창 닫기
+// ============================================================
+
+function closeWorkEditModal() {
+
+    const modal =
+        document.getElementById(
+            "workEditModal"
+        );
+
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
+
+    }
+
+}
+
+
+// ============================================================
+// 36. 작품 수정 저장
+// ============================================================
+
+async function handleWorkEditSubmit(event) {
+
+    event.preventDefault();
+
+
+    if (!currentUser) {
+
+        showToast(
+            "로그인이 필요합니다."
+        );
+
+        closeWorkEditModal();
+
+        openAuthPanel();
+
+        return;
+    }
+
+
+    if (!selectedWork) {
+
+        showToast(
+            "수정할 작품을 찾을 수 없습니다."
+        );
+
+        return;
+    }
+
+
+    const title =
+        document
+            .getElementById(
+                "editWorkTitle"
+            )
+            .value
+            .trim();
+
+
+    const productionDate =
+        document
+            .getElementById(
+                "editWorkDate"
+            )
+            .value;
+
+
+    const type =
+        document
+            .getElementById(
+                "editWorkType"
+            )
+            .value;
+
+
+    const clay =
+        document
+            .getElementById(
+                "editWorkClay"
+            )
+            .value
+            .trim();
+
+
+    const technique =
+        document
+            .getElementById(
+                "editWorkTechnique"
+            )
+            .value
+            .trim();
+
+
+    const description =
+        document
+            .getElementById(
+                "editWorkDescription"
+            )
+            .value
+            .trim();
+
+
+    if (!title) {
+
+        showToast(
+            "작품명을 입력하세요."
+        );
+
+        return;
+    }
+
+
+    const saveButton =
+        document.getElementById(
+            "workEditSaveButton"
+        );
+
+
+    if (saveButton) {
+
+        saveButton.disabled =
+            true;
+
+        saveButton.textContent =
+            "수정 저장 중...";
+
+    }
+
+
+    try {
+
+        const workReference =
+            doc(
+                db,
+                "users",
+                currentUser.uid,
+                "works",
+                selectedWork.id
+            );
+
+
+        await updateDoc(
+            workReference,
+            {
+
+                title:
+                    title,
+
+                productionDate:
+                    productionDate || "",
+
+                type:
+                    type || "",
+
+                clay:
+                    clay || "",
+
+                technique:
+                    technique || "",
+
+                description:
+                    description || ""
+
+            }
+        );
+
+
+        console.log(
+            "작품 수정 완료:",
+            selectedWork.id
+        );
+
+
+        showToast(
+            "작품이 수정되었습니다."
+        );
+
+
+        closeWorkEditModal();
+
+
+        await loadWorks();
+
+
+        openWorksModal();
+
+
+    } catch (error) {
+
+        console.error(
+            "작품 수정 오류:",
+            error
+        );
+
+
+        showToast(
+            "작품 수정에 실패했습니다."
+        );
+
+
+    } finally {
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                false;
+
+            saveButton.textContent =
+                "수정 저장하기";
+
+        }
+
+    }
+
+}
+
+
+// ============================================================
+// 37. 작품 삭제
 // ============================================================
 
 async function deleteWork(workId) {
@@ -2098,7 +3184,7 @@ async function deleteWork(workId) {
 
     const confirmed =
         window.confirm(
-            "이 작품을 삭제하시겠습니까?"
+            "이 작품을 삭제하시겠습니까?\n삭제하면 복구할 수 없습니다."
         );
 
 
@@ -2154,7 +3240,7 @@ async function deleteWork(workId) {
 
 
 // ============================================================
-// 31. 작품 등록 버튼
+// 38. 작품 등록 버튼
 // ============================================================
 
 if (addWorkButton) {
@@ -2172,7 +3258,7 @@ if (addWorkButton) {
 
 
 // ============================================================
-// 32. 메뉴 버튼
+// 39. 메뉴 버튼
 // ============================================================
 
 if (menuButton) {
@@ -2190,7 +3276,7 @@ if (menuButton) {
 
 
 // ============================================================
-// 33. 기능 카드
+// 40. 기능 카드
 // ============================================================
 
 document
@@ -2251,7 +3337,7 @@ document
 
 
 // ============================================================
-// 34. 하단 네비게이션
+// 41. 하단 네비게이션
 // ============================================================
 
 document
@@ -2336,7 +3422,7 @@ document
 
 
 // ============================================================
-// 35. 앱 시작
+// 42. 앱 시작
 // ============================================================
 
 createAuthPanel();
