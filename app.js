@@ -1,7 +1,8 @@
 // ============================================================
 // CLAY DNA
-// Firebase + 기본 앱 기능
+// Firebase + 인증 + 작품 등록 + Firestore 작품 관리
 // ============================================================
+
 
 // ============================================================
 // 1. Firebase SDK
@@ -24,6 +25,8 @@ import {
     collection,
     addDoc,
     getDocs,
+    deleteDoc,
+    doc,
     query,
     orderBy,
     serverTimestamp
@@ -57,11 +60,14 @@ const firebaseConfig = {
 // 3. Firebase 초기화
 // ============================================================
 
-const firebaseApp = initializeApp(firebaseConfig);
+const firebaseApp =
+    initializeApp(firebaseConfig);
 
-const auth = getAuth(firebaseApp);
+const auth =
+    getAuth(firebaseApp);
 
-const db = getFirestore(firebaseApp);
+const db =
+    getFirestore(firebaseApp);
 
 
 // ============================================================
@@ -88,17 +94,20 @@ const menuButton =
 
 
 // ============================================================
-// 6. 기본 알림
+// 6. Toast
 // ============================================================
 
 function showToast(message) {
 
     if (!toastElement) {
+
         console.log(message);
+
         return;
     }
 
-    toastElement.textContent = message;
+    toastElement.textContent =
+        message;
 
     toastElement.classList.add("show");
 
@@ -107,11 +116,12 @@ function showToast(message) {
         toastElement.classList.remove("show");
 
     }, 2500);
+
 }
 
 
 // ============================================================
-// 7. Firebase 연결 확인
+// 7. Firebase 시작 확인
 // ============================================================
 
 console.log(
@@ -143,14 +153,22 @@ console.log(
 
 function createAuthPanel() {
 
-    if (document.getElementById("authPanel")) {
+    if (
+        document.getElementById(
+            "authPanel"
+        )
+    ) {
+
         return;
     }
 
 
-    const panel = document.createElement("div");
+    const panel =
+        document.createElement("div");
 
-    panel.id = "authPanel";
+    panel.id =
+        "authPanel";
+
 
     panel.innerHTML = `
 
@@ -189,9 +207,7 @@ function createAuthPanel() {
                 ></div>
 
 
-                <div
-                    id="authFormArea"
-                >
+                <div id="authFormArea">
 
                     <input
                         type="email"
@@ -262,19 +278,22 @@ function createAuthPanel() {
             </div>
 
         </div>
+
     `;
 
 
     document.body.appendChild(panel);
 
 
-    // --------------------------------------------------------
-    // 간단한 인증 화면 스타일
-    // --------------------------------------------------------
+    // ========================================================
+    // 인증 화면 스타일
+    // ========================================================
 
-    const style = document.createElement("style");
+    const style =
+        document.createElement("style");
 
-    style.id = "clay-auth-style";
+    style.id =
+        "clay-auth-style";
 
     style.textContent = `
 
@@ -390,28 +409,40 @@ function createAuthPanel() {
     document.head.appendChild(style);
 
 
-    // --------------------------------------------------------
-    // 버튼 연결
-    // --------------------------------------------------------
+    // ========================================================
+    // 인증 버튼 연결
+    // ========================================================
 
     document
         .getElementById("authCloseButton")
-        .addEventListener("click", closeAuthPanel);
+        .addEventListener(
+            "click",
+            closeAuthPanel
+        );
 
 
     document
         .getElementById("loginButton")
-        .addEventListener("click", loginUser);
+        .addEventListener(
+            "click",
+            loginUser
+        );
 
 
     document
         .getElementById("signupButton")
-        .addEventListener("click", signupUser);
+        .addEventListener(
+            "click",
+            signupUser
+        );
 
 
     document
         .getElementById("logoutButton")
-        .addEventListener("click", logoutUser);
+        .addEventListener(
+            "click",
+            logoutUser
+        );
 
 }
 
@@ -425,9 +456,12 @@ function openAuthPanel() {
     createAuthPanel();
 
     const panel =
-        document.getElementById("authPanel");
+        document.getElementById(
+            "authPanel"
+        );
 
-    panel.style.display = "block";
+    panel.style.display =
+        "block";
 
     updateAuthUI();
 
@@ -441,10 +475,15 @@ function openAuthPanel() {
 function closeAuthPanel() {
 
     const panel =
-        document.getElementById("authPanel");
+        document.getElementById(
+            "authPanel"
+        );
 
     if (panel) {
-        panel.style.display = "none";
+
+        panel.style.display =
+            "none";
+
     }
 
 }
@@ -460,13 +499,17 @@ function setAuthMessage(
 ) {
 
     const element =
-        document.getElementById("authMessage");
+        document.getElementById(
+            "authMessage"
+        );
 
     if (!element) {
+
         return;
     }
 
-    element.textContent = message;
+    element.textContent =
+        message;
 
     element.className =
         "auth-message " + type;
@@ -481,10 +524,15 @@ function setAuthMessage(
 async function signupUser() {
 
     const email =
-        document.getElementById("authEmail").value.trim();
+        document
+            .getElementById("authEmail")
+            .value
+            .trim();
 
     const password =
-        document.getElementById("authPassword").value;
+        document
+            .getElementById("authPassword")
+            .value;
 
 
     if (!email || !password) {
@@ -542,6 +590,9 @@ async function signupUser() {
         updateAuthUI();
 
 
+        await loadWorks();
+
+
     } catch (error) {
 
         console.error(
@@ -567,10 +618,15 @@ async function signupUser() {
 async function loginUser() {
 
     const email =
-        document.getElementById("authEmail").value.trim();
+        document
+            .getElementById("authEmail")
+            .value
+            .trim();
 
     const password =
-        document.getElementById("authPassword").value;
+        document
+            .getElementById("authPassword")
+            .value;
 
 
     if (!email || !password) {
@@ -617,6 +673,9 @@ async function loginUser() {
         updateAuthUI();
 
 
+        await loadWorks();
+
+
     } catch (error) {
 
         console.error(
@@ -646,6 +705,10 @@ async function logoutUser() {
         await signOut(auth);
 
         currentUser = null;
+
+        works = [];
+
+        updateWorkCount();
 
         showToast(
             "로그아웃되었습니다."
@@ -677,16 +740,26 @@ async function logoutUser() {
 function updateAuthUI() {
 
     const formArea =
-        document.getElementById("authFormArea");
+        document.getElementById(
+            "authFormArea"
+        );
 
     const loggedInArea =
-        document.getElementById("authLoggedInArea");
+        document.getElementById(
+            "authLoggedInArea"
+        );
 
     const loggedInEmail =
-        document.getElementById("loggedInEmail");
+        document.getElementById(
+            "loggedInEmail"
+        );
 
 
-    if (!formArea || !loggedInArea) {
+    if (
+        !formArea ||
+        !loggedInArea
+    ) {
+
         return;
     }
 
@@ -726,9 +799,11 @@ function updateAuthUI() {
 
 onAuthStateChanged(
     auth,
-    (user) => {
+    async (user) => {
 
-        currentUser = user;
+        currentUser =
+            user;
+
 
         console.log(
             "인증 상태:",
@@ -748,6 +823,15 @@ onAuthStateChanged(
                 user.uid
             );
 
+
+            await loadWorks();
+
+        } else {
+
+            works = [];
+
+            updateWorkCount();
+
         }
 
     }
@@ -755,7 +839,7 @@ onAuthStateChanged(
 
 
 // ============================================================
-// 17. Firebase 오류 메시지 변환
+// 17. Firebase 오류 메시지
 // ============================================================
 
 function getFirebaseErrorMessage(error) {
@@ -805,20 +889,587 @@ function getFirebaseErrorMessage(error) {
 
 
 // ============================================================
-// 18. 작품 데이터 저장 준비
+// 18. 작품 등록 화면 스타일
 // ============================================================
 
-async function saveWork(workData) {
+function createWorkStyle() {
+
+    if (
+        document.getElementById(
+            "clay-work-style"
+        )
+    ) {
+
+        return;
+    }
+
+
+    const style =
+        document.createElement("style");
+
+    style.id =
+        "clay-work-style";
+
+
+    style.textContent = `
+
+        #workModal {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: none;
+        }
+
+        .work-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.48);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .work-box {
+            width: min(520px, 100%);
+            max-height: 92vh;
+            overflow-y: auto;
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-sizing: border-box;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+
+        .work-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .work-header h2 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .work-close {
+            border: 0;
+            background: transparent;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .work-form label {
+            display: block;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .work-form input,
+        .work-form select,
+        .work-form textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .work-form input:focus,
+        .work-form select:focus,
+        .work-form textarea:focus {
+            border-color: #777;
+        }
+
+        .work-form textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .work-save-button {
+            width: 100%;
+            margin-top: 22px;
+            padding: 14px;
+            border: 0;
+            border-radius: 10px;
+            background: #333;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .work-save-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #worksModal {
+            position: fixed;
+            inset: 0;
+            z-index: 10001;
+            display: none;
+        }
+
+        .works-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.48);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .works-box {
+            width: min(620px, 100%);
+            max-height: 90vh;
+            overflow-y: auto;
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        .works-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .works-header h2 {
+            margin: 0;
+        }
+
+        .works-close {
+            border: 0;
+            background: transparent;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .work-item {
+            border: 1px solid #e3e3e3;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: #fafafa;
+        }
+
+        .work-item-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .work-item-meta {
+            font-size: 13px;
+            color: #777;
+            line-height: 1.7;
+        }
+
+        .work-item-description {
+            margin-top: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .work-delete-button {
+            margin-top: 12px;
+            padding: 7px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .works-empty {
+            text-align: center;
+            padding: 40px 15px;
+            color: #777;
+        }
+
+        .works-add-button {
+            width: 100%;
+            margin-top: 15px;
+            padding: 13px;
+            border: 0;
+            border-radius: 10px;
+            background: #333;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+    `;
+
+
+    document.head.appendChild(style);
+
+}
+
+
+// ============================================================
+// 19. 작품 등록 화면 생성
+// ============================================================
+
+function createWorkModal() {
+
+    if (
+        document.getElementById(
+            "workModal"
+        )
+    ) {
+
+        return;
+    }
+
+
+    createWorkStyle();
+
+
+    const modal =
+        document.createElement("div");
+
+    modal.id =
+        "workModal";
+
+
+    modal.innerHTML = `
+
+        <div class="work-overlay">
+
+            <div class="work-box">
+
+                <div class="work-header">
+
+                    <h2>
+                        🏺 작품 등록
+                    </h2>
+
+                    <button
+                        type="button"
+                        id="workCloseButton"
+                        class="work-close"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <form
+                    id="workForm"
+                    class="work-form"
+                >
+
+                    <label for="workTitle">
+                        작품명
+                    </label>
+
+                    <input
+                        id="workTitle"
+                        type="text"
+                        placeholder="예: 바다를 담은 항아리"
+                        required
+                    >
+
+
+                    <label for="workDate">
+                        제작일
+                    </label>
+
+                    <input
+                        id="workDate"
+                        type="date"
+                    >
+
+
+                    <label for="workType">
+                        작품 종류
+                    </label>
+
+                    <select id="workType">
+
+                        <option value="">
+                            선택하세요
+                        </option>
+
+                        <option value="항아리">
+                            항아리
+                        </option>
+
+                        <option value="컵">
+                            컵
+                        </option>
+
+                        <option value="접시">
+                            접시
+                        </option>
+
+                        <option value="화병">
+                            화병
+                        </option>
+
+                        <option value="조형물">
+                            조형물
+                        </option>
+
+                        <option value="생활도자">
+                            생활도자
+                        </option>
+
+                        <option value="기타">
+                            기타
+                        </option>
+
+                    </select>
+
+
+                    <label for="workClay">
+                        사용 흙
+                    </label>
+
+                    <input
+                        id="workClay"
+                        type="text"
+                        placeholder="예: 백자토, 산청토"
+                    >
+
+
+                    <label for="workTechnique">
+                        제작 기법
+                    </label>
+
+                    <input
+                        id="workTechnique"
+                        type="text"
+                        placeholder="예: 물레성형, 코일링"
+                    >
+
+
+                    <label for="workDescription">
+                        작품 설명
+                    </label>
+
+                    <textarea
+                        id="workDescription"
+                        placeholder="작품의 느낌, 제작 의도, 특징 등을 기록하세요."
+                    ></textarea>
+
+
+                    <button
+                        id="workSaveButton"
+                        class="work-save-button"
+                        type="submit"
+                    >
+                        작품 저장하기
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(modal);
+
+
+    document
+        .getElementById(
+            "workCloseButton"
+        )
+        .addEventListener(
+            "click",
+            closeWorkModal
+        );
+
+
+    document
+        .getElementById(
+            "workForm"
+        )
+        .addEventListener(
+            "submit",
+            handleWorkSubmit
+        );
+
+}
+
+
+// ============================================================
+// 20. 작품 등록창 열기
+// ============================================================
+
+function openWorkModal() {
 
     if (!currentUser) {
 
         showToast(
-            "먼저 로그인해야 합니다."
+            "작품을 등록하려면 로그인하세요."
         );
 
         openAuthPanel();
 
-        return null;
+        return;
+    }
+
+
+    createWorkModal();
+
+
+    const modal =
+        document.getElementById(
+            "workModal"
+        );
+
+
+    modal.style.display =
+        "block";
+
+
+    const titleInput =
+        document.getElementById(
+            "workTitle"
+        );
+
+
+    if (titleInput) {
+
+        setTimeout(() => {
+
+            titleInput.focus();
+
+        }, 100);
+
+    }
+
+}
+
+
+// ============================================================
+// 21. 작품 등록창 닫기
+// ============================================================
+
+function closeWorkModal() {
+
+    const modal =
+        document.getElementById(
+            "workModal"
+        );
+
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
+
+    }
+
+}
+
+
+// ============================================================
+// 22. 작품 저장 처리
+// ============================================================
+
+async function handleWorkSubmit(event) {
+
+    event.preventDefault();
+
+
+    if (!currentUser) {
+
+        showToast(
+            "로그인이 필요합니다."
+        );
+
+        closeWorkModal();
+
+        openAuthPanel();
+
+        return;
+    }
+
+
+    const title =
+        document
+            .getElementById("workTitle")
+            .value
+            .trim();
+
+
+    const productionDate =
+        document
+            .getElementById("workDate")
+            .value;
+
+
+    const type =
+        document
+            .getElementById("workType")
+            .value;
+
+
+    const clay =
+        document
+            .getElementById("workClay")
+            .value
+            .trim();
+
+
+    const technique =
+        document
+            .getElementById("workTechnique")
+            .value
+            .trim();
+
+
+    const description =
+        document
+            .getElementById("workDescription")
+            .value
+            .trim();
+
+
+    if (!title) {
+
+        showToast(
+            "작품명을 입력하세요."
+        );
+
+        return;
+    }
+
+
+    const saveButton =
+        document.getElementById(
+            "workSaveButton"
+        );
+
+
+    if (saveButton) {
+
+        saveButton.disabled =
+            true;
+
+        saveButton.textContent =
+            "저장 중...";
+
     }
 
 
@@ -833,12 +1484,31 @@ async function saveWork(workData) {
             );
 
 
-        const documentData = {
+        const workData = {
 
-            ...workData,
+            title:
+                title,
+
+            productionDate:
+                productionDate || "",
+
+            type:
+                type || "",
+
+            clay:
+                clay || "",
+
+            technique:
+                technique || "",
+
+            description:
+                description || "",
 
             userId:
                 currentUser.uid,
+
+            userEmail:
+                currentUser.email || "",
 
             createdAt:
                 serverTimestamp()
@@ -849,7 +1519,7 @@ async function saveWork(workData) {
         const documentReference =
             await addDoc(
                 worksCollection,
-                documentData
+                workData
             );
 
 
@@ -864,7 +1534,20 @@ async function saveWork(workData) {
         );
 
 
-        return documentReference.id;
+        closeWorkModal();
+
+
+        document
+            .getElementById(
+                "workForm"
+            )
+            .reset();
+
+
+        await loadWorks();
+
+
+        openWorksModal();
 
 
     } catch (error) {
@@ -880,19 +1563,34 @@ async function saveWork(workData) {
         );
 
 
-        return null;
+    } finally {
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                false;
+
+            saveButton.textContent =
+                "작품 저장하기";
+
+        }
+
     }
 
 }
 
 
 // ============================================================
-// 19. 작품 목록 불러오기 준비
+// 23. 작품 목록 데이터 불러오기
 // ============================================================
 
 async function loadWorks() {
 
     if (!currentUser) {
+
+        works = [];
+
+        updateWorkCount();
 
         return [];
 
@@ -959,6 +1657,16 @@ async function loadWorks() {
         );
 
 
+        works = [];
+
+        updateWorkCount();
+
+
+        showToast(
+            "작품 목록을 불러오지 못했습니다."
+        );
+
+
         return [];
 
     }
@@ -967,7 +1675,7 @@ async function loadWorks() {
 
 
 // ============================================================
-// 20. 작품 수 표시
+// 24. 작품 개수 표시
 // ============================================================
 
 function updateWorkCount() {
@@ -1002,7 +1710,451 @@ function updateWorkCount() {
 
 
 // ============================================================
-// 21. 작품 등록 버튼
+// 25. 작품 목록 화면 생성
+// ============================================================
+
+function createWorksModal() {
+
+    if (
+        document.getElementById(
+            "worksModal"
+        )
+    ) {
+
+        return;
+    }
+
+
+    createWorkStyle();
+
+
+    const modal =
+        document.createElement("div");
+
+    modal.id =
+        "worksModal";
+
+
+    modal.innerHTML = `
+
+        <div class="works-overlay">
+
+            <div class="works-box">
+
+                <div class="works-header">
+
+                    <h2>
+                        🏺 나의 작품
+                    </h2>
+
+                    <button
+                        type="button"
+                        id="worksCloseButton"
+                        class="works-close"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="worksList"
+                ></div>
+
+
+                <button
+                    type="button"
+                    id="worksAddButton"
+                    class="works-add-button"
+                >
+                    ＋ 새 작품 등록
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(modal);
+
+
+    document
+        .getElementById(
+            "worksCloseButton"
+        )
+        .addEventListener(
+            "click",
+            closeWorksModal
+        );
+
+
+    document
+        .getElementById(
+            "worksAddButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                closeWorksModal();
+
+                openWorkModal();
+
+            }
+        );
+
+}
+
+
+// ============================================================
+// 26. 작품 목록 화면 열기
+// ============================================================
+
+async function openWorksModal() {
+
+    if (!currentUser) {
+
+        showToast(
+            "작품을 보려면 로그인하세요."
+        );
+
+        openAuthPanel();
+
+        return;
+    }
+
+
+    createWorksModal();
+
+
+    await loadWorks();
+
+
+    renderWorks();
+
+
+    const modal =
+        document.getElementById(
+            "worksModal"
+        );
+
+
+    modal.style.display =
+        "block";
+
+}
+
+
+// ============================================================
+// 27. 작품 목록 화면 닫기
+// ============================================================
+
+function closeWorksModal() {
+
+    const modal =
+        document.getElementById(
+            "worksModal"
+        );
+
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
+
+    }
+
+}
+
+
+// ============================================================
+// 28. 작품 목록 화면 렌더링
+// ============================================================
+
+function renderWorks() {
+
+    const list =
+        document.getElementById(
+            "worksList"
+        );
+
+
+    if (!list) {
+
+        return;
+    }
+
+
+    if (
+        works.length === 0
+    ) {
+
+        list.innerHTML = `
+
+            <div class="works-empty">
+
+                <div
+                    style="font-size:42px; margin-bottom:12px;"
+                >
+                    🏺
+                </div>
+
+                <div>
+                    아직 등록된 작품이 없습니다.
+                </div>
+
+                <div
+                    style="font-size:13px; margin-top:8px;"
+                >
+                    첫 번째 도자기 작품을 등록해 보세요.
+                </div>
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+
+    list.innerHTML =
+        works
+            .map(work => {
+
+                const title =
+                    escapeHtml(
+                        work.title || "이름 없는 작품"
+                    );
+
+
+                const type =
+                    escapeHtml(
+                        work.type || "미입력"
+                    );
+
+
+                const clay =
+                    escapeHtml(
+                        work.clay || "미입력"
+                    );
+
+
+                const technique =
+                    escapeHtml(
+                        work.technique || "미입력"
+                    );
+
+
+                const productionDate =
+                    escapeHtml(
+                        work.productionDate || "미입력"
+                    );
+
+
+                const description =
+                    escapeHtml(
+                        work.description || ""
+                    );
+
+
+                return `
+
+                    <div class="work-item">
+
+                        <div class="work-item-title">
+                            ${title}
+                        </div>
+
+
+                        <div class="work-item-meta">
+
+                            제작일:
+                            ${productionDate}
+
+                            <br>
+
+                            종류:
+                            ${type}
+
+                            <br>
+
+                            흙:
+                            ${clay}
+
+                            <br>
+
+                            기법:
+                            ${technique}
+
+                        </div>
+
+
+                        ${
+                            description
+                                ? `
+                                    <div
+                                        class="work-item-description"
+                                    >
+                                        ${description}
+                                    </div>
+                                `
+                                : ""
+                        }
+
+
+                        <button
+                            type="button"
+                            class="work-delete-button"
+                            data-work-id="${work.id}"
+                        >
+                            작품 삭제
+                        </button>
+
+                    </div>
+
+                `;
+
+            })
+            .join("");
+
+
+    list
+        .querySelectorAll(
+            ".work-delete-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                async () => {
+
+                    const workId =
+                        button.dataset.workId;
+
+
+                    await deleteWork(
+                        workId
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+
+// ============================================================
+// 29. HTML 안전 처리
+// ============================================================
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+// ============================================================
+// 30. 작품 삭제
+// ============================================================
+
+async function deleteWork(workId) {
+
+    if (!currentUser) {
+
+        return;
+    }
+
+
+    if (!workId) {
+
+        return;
+    }
+
+
+    const confirmed =
+        window.confirm(
+            "이 작품을 삭제하시겠습니까?"
+        );
+
+
+    if (!confirmed) {
+
+        return;
+    }
+
+
+    try {
+
+        const workReference =
+            doc(
+                db,
+                "users",
+                currentUser.uid,
+                "works",
+                workId
+            );
+
+
+        await deleteDoc(
+            workReference
+        );
+
+
+        showToast(
+            "작품이 삭제되었습니다."
+        );
+
+
+        await loadWorks();
+
+
+        renderWorks();
+
+
+    } catch (error) {
+
+        console.error(
+            "작품 삭제 오류:",
+            error
+        );
+
+
+        showToast(
+            "작품 삭제에 실패했습니다."
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// 31. 작품 등록 버튼
 // ============================================================
 
 if (addWorkButton) {
@@ -1011,21 +2163,7 @@ if (addWorkButton) {
         "click",
         () => {
 
-            if (!currentUser) {
-
-                showToast(
-                    "작품을 등록하려면 로그인하세요."
-                );
-
-                openAuthPanel();
-
-                return;
-            }
-
-
-            showToast(
-                "작품 등록 기능을 준비하고 있습니다."
-            );
+            openWorkModal();
 
         }
     );
@@ -1034,7 +2172,7 @@ if (addWorkButton) {
 
 
 // ============================================================
-// 22. 메뉴 버튼
+// 32. 메뉴 버튼
 // ============================================================
 
 if (menuButton) {
@@ -1052,11 +2190,13 @@ if (menuButton) {
 
 
 // ============================================================
-// 23. 기능 카드
+// 33. 기능 카드
 // ============================================================
 
 document
-    .querySelectorAll(".feature-card")
+    .querySelectorAll(
+        ".feature-card"
+    )
     .forEach(card => {
 
         card.addEventListener(
@@ -1071,9 +2211,7 @@ document
 
                     case "works":
 
-                        showToast(
-                            "작품 관리 기능을 준비하고 있습니다."
-                        );
+                        openWorksModal();
 
                         break;
 
@@ -1081,7 +2219,7 @@ document
                     case "analyze":
 
                         showToast(
-                            "AI 분석 기능을 준비하고 있습니다."
+                            "AI 분석 기능은 다음 단계에서 연결합니다."
                         );
 
                         break;
@@ -1090,7 +2228,7 @@ document
                     case "dna":
 
                         showToast(
-                            "나의 DNA 기능을 준비하고 있습니다."
+                            "CLAY DNA 분석 기능은 다음 단계에서 연결합니다."
                         );
 
                         break;
@@ -1099,7 +2237,7 @@ document
                     case "build":
 
                         showToast(
-                            "AI BUILD 기능을 준비하고 있습니다."
+                            "AI BUILD 기능은 다음 단계에서 연결합니다."
                         );
 
                         break;
@@ -1113,11 +2251,13 @@ document
 
 
 // ============================================================
-// 24. 하단 네비게이션
+// 34. 하단 네비게이션
 // ============================================================
 
 document
-    .querySelectorAll(".nav-item")
+    .querySelectorAll(
+        ".nav-item"
+    )
     .forEach(item => {
 
         item.addEventListener(
@@ -1158,9 +2298,7 @@ document
 
                     case "works":
 
-                        showToast(
-                            "작품"
-                        );
+                        openWorksModal();
 
                         break;
 
@@ -1168,7 +2306,7 @@ document
                     case "ai":
 
                         showToast(
-                            "AI"
+                            "AI 기능은 다음 단계에서 연결합니다."
                         );
 
                         break;
@@ -1177,7 +2315,7 @@ document
                     case "dna":
 
                         showToast(
-                            "나의 DNA"
+                            "나의 DNA 기능은 다음 단계에서 연결합니다."
                         );
 
                         break;
@@ -1198,10 +2336,13 @@ document
 
 
 // ============================================================
-// 25. 앱 시작
+// 35. 앱 시작
 // ============================================================
 
 createAuthPanel();
+
+createWorkStyle();
+
 
 console.log(
     "CLAY DNA 앱 초기화 완료"
