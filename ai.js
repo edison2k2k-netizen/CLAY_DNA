@@ -1,6 +1,6 @@
 // =============================================
 // CLAY DNA - AI 작품 분석
-// AI Analysis Module
+// AI Analysis + Firestore 저장
 // =============================================
 
 import {
@@ -18,33 +18,23 @@ import {
     collection,
     getDocs,
     query,
-    orderBy
+    orderBy,
+    doc,
+    setDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 
 // =============================================
-// Firebase 연결
+// Firebase
+// 기존 app.js에서 만들어진 Firebase 앱 사용
 // =============================================
 
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "clay-dna.firebaseapp.com",
-    projectId: "clay-dna",
-    storageBucket: "clay-dna.firebasestorage.app",
-    messagingSenderId: "456070145020",
-    appId: "1:456070145020:web:2bcfc864817e2efa728879",
-    measurementId: "G-30DNQX0P85"
-};
-
-
-// 기존 Firebase 앱이 있으면 사용
 const firebaseApp =
     getApps().length > 0
         ? getApp()
         : null;
 
-
-// 기존 app.js가 초기화한 Firebase를 사용
 const auth =
     firebaseApp
         ? getAuth(firebaseApp)
@@ -241,6 +231,11 @@ function createAIStyle() {
             opacity: 0.85;
         }
 
+        .ai-main-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .ai-empty {
             text-align: center;
             padding: 40px 20px;
@@ -252,6 +247,15 @@ function createAIStyle() {
             text-align: center;
             padding: 40px;
             color: #666;
+        }
+
+        .ai-save-success {
+            margin-top: 15px;
+            padding: 14px;
+            border-radius: 10px;
+            background: #eeeeee;
+            text-align: center;
+            line-height: 1.5;
         }
 
         @media (max-width: 600px) {
@@ -274,40 +278,44 @@ function createAIStyle() {
 
 
 // =============================================
-// 로그인 상태 감시
+// 로그인 상태
 // =============================================
 
 if (auth) {
 
-    onAuthStateChanged(auth, async function(user) {
+    onAuthStateChanged(
+        auth,
+        async function(user) {
 
-        aiCurrentUser = user;
+            aiCurrentUser = user;
 
-        if (user) {
+            if (user) {
 
-            console.log(
-                "AI 모듈 로그인 확인:",
-                user.email
-            );
+                console.log(
+                    "AI 모듈 로그인 확인:",
+                    user.email
+                );
 
-            await loadAIWorks();
+                await loadAIWorks();
 
-        } else {
+            } else {
 
-            aiWorks = [];
+                aiWorks = [];
 
-            console.log(
-                "AI 모듈: 로그인되지 않음"
-            );
+                console.log(
+                    "AI 모듈: 로그아웃 상태"
+                );
+
+            }
+
         }
-
-    });
+    );
 
 }
 
 
 // =============================================
-// 작품 데이터 불러오기
+// 작품 불러오기
 // =============================================
 
 async function loadAIWorks() {
@@ -329,21 +337,26 @@ async function loadAIWorks() {
         const q =
             query(
                 worksRef,
-                orderBy("createdAt", "desc")
+                orderBy(
+                    "createdAt",
+                    "desc"
+                )
             );
 
         const snapshot =
             await getDocs(q);
 
         aiWorks =
-            snapshot.docs.map(function(doc) {
+            snapshot.docs.map(
+                function(item) {
 
-                return {
-                    id: doc.id,
-                    ...doc.data()
-                };
+                    return {
+                        id: item.id,
+                        ...item.data()
+                    };
 
-            });
+                }
+            );
 
         console.log(
             "AI 모듈 작품:",
@@ -357,8 +370,9 @@ async function loadAIWorks() {
             error
         );
 
-        // createdAt 정렬 문제가 있을 경우
-        // 기본 조회로 한 번 더 시도
+
+        // createdAt 정렬에 문제가 있을 경우
+        // 일반 조회로 재시도
 
         try {
 
@@ -371,17 +385,21 @@ async function loadAIWorks() {
                 );
 
             const snapshot =
-                await getDocs(worksRef);
+                await getDocs(
+                    worksRef
+                );
 
             aiWorks =
-                snapshot.docs.map(function(doc) {
+                snapshot.docs.map(
+                    function(item) {
 
-                    return {
-                        id: doc.id,
-                        ...doc.data()
-                    };
+                        return {
+                            id: item.id,
+                            ...item.data()
+                        };
 
-                });
+                    }
+                );
 
         } catch (retryError) {
 
@@ -389,120 +407,134 @@ async function loadAIWorks() {
                 "AI 작품 재조회 오류:",
                 retryError
             );
+
         }
+
     }
+
 }
 
 
 // =============================================
-// AI 분석 화면 열기
+// AI 분석 화면
 // =============================================
 
-window.openAIAnalysis = async function() {
+window.openAIAnalysis =
+    async function() {
 
-    createAIStyle();
+        createAIStyle();
 
-    // 로그인 확인
-    if (!aiCurrentUser) {
 
-        if (typeof window.showToast === "function") {
+        if (!aiCurrentUser) {
 
-            window.showToast(
-                "먼저 로그인해주세요."
-            );
+            if (
+                typeof window.showToast ===
+                "function"
+            ) {
 
-        } else {
+                window.showToast(
+                    "먼저 로그인해주세요."
+                );
 
-            alert(
-                "먼저 로그인해주세요."
-            );
+            } else {
+
+                alert(
+                    "먼저 로그인해주세요."
+                );
+
+            }
+
+            return;
         }
 
-        return;
-    }
+
+        await loadAIWorks();
 
 
-    // 최신 작품 다시 불러오기
-    await loadAIWorks();
+        const oldModal =
+            document.getElementById(
+                "aiAnalysisModal"
+            );
+
+        if (oldModal) {
+            oldModal.remove();
+        }
 
 
-    // 기존 창 제거
-    const oldModal =
-        document.getElementById(
-            "aiAnalysisModal"
-        );
+        const overlay =
+            document.createElement("div");
 
-    if (oldModal) {
-        oldModal.remove();
-    }
+        overlay.className =
+            "ai-modal-overlay";
 
-
-    const overlay =
-        document.createElement("div");
-
-    overlay.className =
-        "ai-modal-overlay";
-
-    overlay.id =
-        "aiAnalysisModal";
+        overlay.id =
+            "aiAnalysisModal";
 
 
-    overlay.innerHTML = `
+        overlay.innerHTML = `
 
-        <div class="ai-modal">
+            <div class="ai-modal">
 
-            <div class="ai-header">
+                <div class="ai-header">
 
-                <h2>
-                    CLAY DNA AI 분석
-                </h2>
+                    <h2>
+                        CLAY DNA AI 분석
+                    </h2>
 
-                <button
-                    type="button"
-                    class="ai-close"
-                    id="aiCloseButton">
+                    <button
+                        type="button"
+                        class="ai-close"
+                        id="aiCloseButton">
 
-                    ×
+                        ×
 
-                </button>
+                    </button>
+
+                </div>
+
+
+                <p>
+                    분석할 작품을 선택하세요.
+                </p>
+
+
+                <div
+                    id="aiWorkSelector"
+                    class="ai-work-selector">
+                </div>
+
+
+                <div
+                    id="aiAnalysisResult">
+                </div>
 
             </div>
 
-            <p>
-                분석할 작품을 선택하세요.
-            </p>
-
-            <div
-                id="aiWorkSelector"
-                class="ai-work-selector">
-            </div>
-
-            <div
-                id="aiAnalysisResult">
-            </div>
-
-        </div>
-    `;
+        `;
 
 
-    document.body.appendChild(overlay);
-
-
-    document
-        .getElementById("aiCloseButton")
-        .addEventListener(
-            "click",
-            window.closeAIAnalysis
+        document.body.appendChild(
+            overlay
         );
 
 
-    renderAIWorkSelector();
+        document
+            .getElementById(
+                "aiCloseButton"
+            )
+            .addEventListener(
+                "click",
+                window.closeAIAnalysis
+            );
 
-};
+
+        renderAIWorkSelector();
+
+    };
 
 
 // =============================================
-// 작품 선택 목록
+// 작품 목록
 // =============================================
 
 function renderAIWorkSelector() {
@@ -545,71 +577,78 @@ function renderAIWorkSelector() {
 
 
     container.innerHTML =
-        aiWorks.map(function(work) {
+        aiWorks.map(
+            function(work) {
 
-            return `
+                return `
 
-                <button
-                    type="button"
-                    class="ai-work-button"
-                    data-work-id="${escapeHtml(work.id)}">
+                    <button
+                        type="button"
+                        class="ai-work-button"
+                        data-work-id="${escapeHtml(work.id)}">
 
-                    <div class="ai-work-title">
+                        <div class="ai-work-title">
 
-                        ${escapeHtml(
-                            work.title ||
-                            "제목 없음"
-                        )}
+                            ${escapeHtml(
+                                work.title ||
+                                "제목 없음"
+                            )}
 
-                    </div>
+                        </div>
 
-                    <div class="ai-work-info">
+                        <div class="ai-work-info">
 
-                        ${escapeHtml(
-                            work.type ||
-                            "종류 미입력"
-                        )}
+                            ${escapeHtml(
+                                work.type ||
+                                "종류 미입력"
+                            )}
 
-                        ·
+                            ·
 
-                        ${escapeHtml(
-                            work.technique ||
-                            "기법 미입력"
-                        )}
+                            ${escapeHtml(
+                                work.technique ||
+                                "기법 미입력"
+                            )}
 
-                        ${
-                            work.clay
-                                ? " · " +
-                                  escapeHtml(work.clay)
-                                : ""
-                        }
+                            ${
+                                work.clay
+                                    ? " · " +
+                                      escapeHtml(
+                                          work.clay
+                                      )
+                                    : ""
+                            }
 
-                    </div>
+                        </div>
 
-                </button>
+                    </button>
 
-            `;
+                `;
 
-        }).join("");
+            }
+        ).join("");
 
 
     container
-        .querySelectorAll(".ai-work-button")
-        .forEach(function(button) {
+        .querySelectorAll(
+            ".ai-work-button"
+        )
+        .forEach(
+            function(button) {
 
-            button.addEventListener(
-                "click",
-                function() {
+                button.addEventListener(
+                    "click",
+                    function() {
 
-                    const workId =
-                        button.dataset.workId;
+                        selectAIWork(
+                            button.dataset.workId
+                        );
 
-                    selectAIWork(workId);
+                    }
+                );
 
-                }
-            );
-
-        });
+            }
+        );
 
 }
 
@@ -621,11 +660,13 @@ function renderAIWorkSelector() {
 function selectAIWork(workId) {
 
     const work =
-        aiWorks.find(function(item) {
+        aiWorks.find(
+            function(item) {
 
-            return item.id === workId;
+                return item.id === workId;
 
-        });
+            }
+        );
 
 
     if (!work) {
@@ -638,9 +679,13 @@ function selectAIWork(workId) {
     }
 
 
-    aiSelectedWork = work;
+    aiSelectedWork =
+        work;
 
-    runAIAnalysis(work);
+    runAIAnalysis(
+        work
+    );
+
 }
 
 
@@ -675,20 +720,26 @@ function runAIAnalysis(work) {
     `;
 
 
-    setTimeout(function() {
+    setTimeout(
+        function() {
 
-        const analysis =
-            analyzeCeramicWork(work);
+            const analysis =
+                analyzeCeramicWork(
+                    work
+                );
 
-        aiSelectedAnalysis =
-            analysis;
+            aiSelectedAnalysis =
+                analysis;
 
-        renderAIResult(
-            work,
-            analysis
-        );
 
-    }, 500);
+            renderAIResult(
+                work,
+                analysis
+            );
+
+        },
+        500
+    );
 
 }
 
@@ -700,16 +751,24 @@ function runAIAnalysis(work) {
 function analyzeCeramicWork(work) {
 
     const type =
-        String(work.type || "");
+        String(
+            work.type || ""
+        );
 
     const clay =
-        String(work.clay || "");
+        String(
+            work.clay || ""
+        );
 
     const technique =
-        String(work.technique || "");
+        String(
+            work.technique || ""
+        );
 
     const description =
-        String(work.description || "");
+        String(
+            work.description || ""
+        );
 
 
     const text =
@@ -724,7 +783,10 @@ function analyzeCeramicWork(work) {
         ).toLowerCase();
 
 
+    // -----------------------------------------
     // 형태
+    // -----------------------------------------
+
     let formCharacter =
         "기본적인 형태 중심의 작품";
 
@@ -765,16 +827,22 @@ function analyzeCeramicWork(work) {
 
         formCharacter =
             "조형성과 표현성이 강조된 작품";
+
     }
 
 
+    // -----------------------------------------
     // 제작기법
+    // -----------------------------------------
+
     let techniqueCharacter =
         technique ||
         "제작기법 정보 부족";
 
 
-    if (text.includes("물레")) {
+    if (
+        text.includes("물레")
+    ) {
 
         techniqueCharacter =
             "물레 성형을 중심으로 제작된 작품";
@@ -807,49 +875,67 @@ function analyzeCeramicWork(work) {
 
         techniqueCharacter =
             "코일링을 이용한 형태 구성";
+
     }
 
 
+    // -----------------------------------------
     // 재료
+    // -----------------------------------------
+
     let materialCharacter =
         clay ||
         "사용 흙 정보 부족";
 
 
-    if (text.includes("백자")) {
+    if (
+        text.includes("백자")
+    ) {
 
         materialCharacter =
             "백자 계열 흙을 사용한 밝고 정제된 표현";
 
     }
 
-    else if (text.includes("청자")) {
+    else if (
+        text.includes("청자")
+    ) {
 
         materialCharacter =
             "청자 계열 흙을 사용한 전통적인 도자 표현";
 
     }
 
-    else if (text.includes("분청")) {
+    else if (
+        text.includes("분청")
+    ) {
 
         materialCharacter =
             "분청 계열의 질감과 표현 가능성이 특징";
 
     }
 
-    else if (text.includes("옹기")) {
+    else if (
+        text.includes("옹기")
+    ) {
 
         materialCharacter =
             "옹기 계열의 자연스러운 질감과 실용성이 특징";
+
     }
 
 
-    // 표현
+    // -----------------------------------------
+    // 표현 방향
+    // -----------------------------------------
+
     let expression =
         "현재 등록된 작품 데이터를 기반으로 기본적인 특성을 분석했습니다.";
 
 
-    if (description.length >= 30) {
+    if (
+        description.length >= 30
+    ) {
 
         expression =
             "작품 설명에 비교적 충분한 정보가 있어 제작 의도와 표현 방향을 분석할 수 있습니다.";
@@ -879,10 +965,14 @@ function analyzeCeramicWork(work) {
 
         expression =
             "사람과의 관계, 교육 또는 사회적 의미를 작품의 표현 요소로 활용하는 경향이 나타납니다.";
+
     }
 
 
+    // -----------------------------------------
     // 분석 충실도
+    // -----------------------------------------
+
     let score = 60;
 
 
@@ -902,11 +992,15 @@ function analyzeCeramicWork(work) {
         score += 10;
     }
 
-    if (description.length >= 30) {
+    if (
+        description.length >= 30
+    ) {
         score += 10;
     }
 
-    if (description.length >= 80) {
+    if (
+        description.length >= 80
+    ) {
         score += 5;
     }
 
@@ -916,59 +1010,111 @@ function analyzeCeramicWork(work) {
     }
 
 
+    // -----------------------------------------
     // DNA 태그
+    // -----------------------------------------
+
     const dnaTags = [];
 
 
-    if (type.includes("항아리")) {
-        dnaTags.push("항아리");
+    if (
+        type.includes("항아리")
+    ) {
+        dnaTags.push(
+            "항아리"
+        );
     }
 
-    if (type.includes("컵")) {
-        dnaTags.push("실용도자");
+    if (
+        type.includes("컵")
+    ) {
+        dnaTags.push(
+            "실용도자"
+        );
     }
 
-    if (type.includes("접시")) {
-        dnaTags.push("생활도자");
+    if (
+        type.includes("접시")
+    ) {
+        dnaTags.push(
+            "생활도자"
+        );
     }
 
-    if (type.includes("화병")) {
-        dnaTags.push("공간성");
+    if (
+        type.includes("화병")
+    ) {
+        dnaTags.push(
+            "공간성"
+        );
     }
 
-    if (type.includes("조형")) {
-        dnaTags.push("조형성");
+    if (
+        type.includes("조형")
+    ) {
+        dnaTags.push(
+            "조형성"
+        );
     }
 
-    if (text.includes("물레")) {
-        dnaTags.push("물레성형");
+    if (
+        text.includes("물레")
+    ) {
+        dnaTags.push(
+            "물레성형"
+        );
     }
 
     if (
         text.includes("손성형") ||
         text.includes("손 성형")
     ) {
-        dnaTags.push("손성형");
+        dnaTags.push(
+            "손성형"
+        );
     }
 
-    if (text.includes("자연")) {
-        dnaTags.push("자연친화");
+    if (
+        text.includes("자연")
+    ) {
+        dnaTags.push(
+            "자연친화"
+        );
     }
 
-    if (text.includes("바다")) {
-        dnaTags.push("해양");
+    if (
+        text.includes("바다")
+    ) {
+        dnaTags.push(
+            "해양"
+        );
     }
 
-    if (text.includes("교육")) {
-        dnaTags.push("교육");
+    if (
+        text.includes("교육")
+    ) {
+        dnaTags.push(
+            "교육"
+        );
     }
 
-    if (text.includes("장애")) {
-        dnaTags.push("장애인문화예술");
+    if (
+        text.includes("장애")
+    ) {
+        dnaTags.push(
+            "장애인문화예술"
+        );
     }
 
-    if (dnaTags.length === 0) {
-        dnaTags.push("도자공예");
+
+    if (
+        dnaTags.length === 0
+    ) {
+
+        dnaTags.push(
+            "도자공예"
+        );
+
     }
 
 
@@ -1101,8 +1247,7 @@ function renderAIResult(
             </div>
 
 
-            <div
-                class="ai-description">
+            <div class="ai-description">
 
                 <strong>
                     CLAY DNA 키워드
@@ -1112,19 +1257,24 @@ function renderAIResult(
                 <div class="ai-tags">
 
                     ${analysis.dnaTags
-                        .map(function(tag) {
+                        .map(
+                            function(tag) {
 
-                            return `
+                                return `
 
-                                <span class="ai-tag">
+                                    <span
+                                        class="ai-tag">
 
-                                    ${escapeHtml(tag)}
+                                        ${escapeHtml(
+                                            tag
+                                        )}
 
-                                </span>
+                                    </span>
 
-                            `;
+                                `;
 
-                        })
+                            }
+                        )
                         .join("")}
 
                 </div>
@@ -1140,6 +1290,11 @@ function renderAIResult(
                 분석 결과 저장
 
             </button>
+
+
+            <div
+                id="aiSaveMessage">
+            </div>
 
         </div>
 
@@ -1159,8 +1314,8 @@ function renderAIResult(
 
 
 // =============================================
-// 현재는 저장 테스트
-// 다음 단계에서 Firestore 저장 연결
+// ★ 핵심
+// AI 분석 결과 Firestore 저장
 // =============================================
 
 async function saveAIAnalysis() {
@@ -1178,32 +1333,198 @@ async function saveAIAnalysis() {
     }
 
 
-    console.log(
-        "CLAY DNA 분석 결과:",
-        {
+    if (
+        !aiCurrentUser ||
+        !db
+    ) {
+
+        alert(
+            "로그인 상태를 확인해주세요."
+        );
+
+        return;
+    }
+
+
+    const button =
+        document.getElementById(
+            "saveAIAnalysisButton"
+        );
+
+    const message =
+        document.getElementById(
+            "aiSaveMessage"
+        );
+
+
+    if (button) {
+
+        button.disabled = true;
+
+        button.textContent =
+            "분석 결과 저장 중...";
+
+    }
+
+
+    try {
+
+        // -------------------------------------
+        // 저장 위치
+        //
+        // users
+        //   └─ UID
+        //      └─ works
+        //         └─ 작품ID
+        //            └─ analysis
+        // -------------------------------------
+
+        const analysisRef =
+            doc(
+                db,
+                "users",
+                aiCurrentUser.uid,
+                "works",
+                aiSelectedWork.id,
+                "analysis",
+                "latest"
+            );
+
+
+        const analysisData = {
+
             workId:
                 aiSelectedWork.id,
 
             workTitle:
-                aiSelectedWork.title,
+                aiSelectedWork.title ||
+                "",
 
-            analysis:
-                aiSelectedAnalysis
+            score:
+                aiSelectedAnalysis.score,
+
+            formCharacter:
+                aiSelectedAnalysis.formCharacter,
+
+            techniqueCharacter:
+                aiSelectedAnalysis.techniqueCharacter,
+
+            materialCharacter:
+                aiSelectedAnalysis.materialCharacter,
+
+            expression:
+                aiSelectedAnalysis.expression,
+
+            dnaTags:
+                aiSelectedAnalysis.dnaTags,
+
+            analyzedAt:
+                serverTimestamp(),
+
+            analyzer:
+                "CLAY DNA Local AI Engine",
+
+            version:
+                "1.0"
+
+        };
+
+
+        await setDoc(
+            analysisRef,
+            analysisData
+        );
+
+
+        console.log(
+            "AI 분석 결과 저장 완료:",
+            analysisData
+        );
+
+
+        if (button) {
+
+            button.textContent =
+                "저장 완료";
+
         }
-    );
 
 
-    if (typeof window.showToast === "function") {
+        if (message) {
 
-        window.showToast(
-            "AI 분석 결과가 생성되었습니다."
+            message.innerHTML = `
+
+                <div class="ai-save-success">
+
+                    AI 분석 결과가
+                    Firestore에 저장되었습니다.
+
+                    <br>
+
+                    이 데이터는 앞으로
+                    <strong>
+                        CLAY DNA 분석
+                    </strong>
+                    에 활용됩니다.
+
+                </div>
+
+            `;
+
+        }
+
+
+        if (
+            typeof window.showToast ===
+            "function"
+        ) {
+
+            window.showToast(
+                "AI 분석 결과가 저장되었습니다."
+            );
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "AI 분석 결과 저장 오류:",
+            error
         );
 
-    } else {
 
-        alert(
-            "AI 분석 결과가 생성되었습니다."
-        );
+        if (button) {
+
+            button.disabled = false;
+
+            button.textContent =
+                "분석 결과 저장";
+
+        }
+
+
+        if (message) {
+
+            message.innerHTML = `
+
+                <div
+                    class="ai-save-success"
+                    style="
+                        background:#f3f3f3;
+                    ">
+
+                    분석 결과 저장에 실패했습니다.
+
+                    <br><br>
+
+                    Console에서 오류를 확인해주세요.
+
+                </div>
+
+            `;
+
+        }
 
     }
 
@@ -1211,7 +1532,7 @@ async function saveAIAnalysis() {
 
 
 // =============================================
-// 닫기
+// AI 분석 창 닫기
 // =============================================
 
 window.closeAIAnalysis =
@@ -1226,13 +1547,16 @@ window.closeAIAnalysis =
             modal.remove();
         }
 
+
         aiSelectedWork = null;
+
         aiSelectedAnalysis = null;
+
     };
 
 
 // =============================================
-// AI 버튼 자동 연결
+// AI 버튼 연결
 // =============================================
 
 function connectAIButtons() {
@@ -1242,101 +1566,123 @@ function connectAIButtons() {
     );
 
 
-    // -----------------------------------------
     // data-feature="analyze"
-    // -----------------------------------------
-
     document
         .querySelectorAll(
             '[data-feature="analyze"]'
         )
-        .forEach(function(button) {
+        .forEach(
+            function(button) {
 
-            button.addEventListener(
-                "click",
-                function(event) {
-
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    window.openAIAnalysis();
-
+                if (
+                    button.dataset.aiConnected
+                ) {
+                    return;
                 }
-            );
-
-        });
 
 
-    // -----------------------------------------
+                button.dataset.aiConnected =
+                    "true";
+
+
+                button.addEventListener(
+                    "click",
+                    function(event) {
+
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        window.openAIAnalysis();
+
+                    }
+                );
+
+            }
+        );
+
+
     // data-nav="ai"
-    // -----------------------------------------
-
     document
         .querySelectorAll(
             '[data-nav="ai"]'
         )
-        .forEach(function(button) {
+        .forEach(
+            function(button) {
 
-            button.addEventListener(
-                "click",
-                function(event) {
-
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    window.openAIAnalysis();
-
+                if (
+                    button.dataset.aiConnected
+                ) {
+                    return;
                 }
-            );
-
-        });
 
 
-    // -----------------------------------------
-    // AI 메뉴 버튼이 별도 속성이 없는 경우
-    // bottom navigation에서 텍스트 검사
-    // -----------------------------------------
+                button.dataset.aiConnected =
+                    "true";
 
+
+                button.addEventListener(
+                    "click",
+                    function(event) {
+
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        window.openAIAnalysis();
+
+                    }
+                );
+
+            }
+        );
+
+
+    // AI라는 글자가 들어간 버튼
     document
         .querySelectorAll(
             "button, a"
         )
-        .forEach(function(button) {
+        .forEach(
+            function(button) {
 
-            const text =
-                (button.textContent || "")
-                .trim();
+                const text =
+                    (
+                        button.textContent ||
+                        ""
+                    ).trim();
 
-            if (
-                text === "AI" ||
-                text === "AI 분석" ||
-                text.includes("AI 분석")
-            ) {
 
                 if (
-                    !button.dataset.aiConnected
+                    text === "AI" ||
+                    text === "AI 분석" ||
+                    text.includes("AI 분석")
                 ) {
 
-                    button.dataset.aiConnected =
-                        "true";
+                    if (
+                        !button.dataset.aiConnected
+                    ) {
 
-                    button.addEventListener(
-                        "click",
-                        function(event) {
+                        button.dataset.aiConnected =
+                            "true";
 
-                            event.preventDefault();
-                            event.stopPropagation();
 
-                            window.openAIAnalysis();
+                        button.addEventListener(
+                            "click",
+                            function(event) {
 
-                        }
-                    );
+                                event.preventDefault();
+                                event.stopPropagation();
+
+                                window.openAIAnalysis();
+
+                            }
+                        );
+
+                    }
 
                 }
 
             }
-
-        });
+        );
 
 
     console.log(
@@ -1353,9 +1699,9 @@ function connectAIButtons() {
 createAIStyle();
 
 
-// DOM이 이미 만들어진 경우
 if (
-    document.readyState === "loading"
+    document.readyState ===
+    "loading"
 ) {
 
     document.addEventListener(
@@ -1370,7 +1716,7 @@ if (
 }
 
 
-// app.js가 먼저 로딩되는 경우를 대비
+// app.js보다 늦게 DOM이 만들어지는 경우 대비
 setTimeout(
     connectAIButtons,
     1000
