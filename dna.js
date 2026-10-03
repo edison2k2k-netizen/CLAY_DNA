@@ -1,6 +1,6 @@
 // ============================================================
 // CLAY DNA
-// 개인 창작 스타일 분석
+// 개인 창작 스타일 + 작업 스타일 변화 분석
 // ============================================================
 
 import {
@@ -25,6 +25,8 @@ import {
 // ============================================================
 
 let dnaProfile = null;
+let allWorks = [];
+let allAnalyses = [];
 
 
 // ============================================================
@@ -41,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 // ============================================================
-// DNA 화면 생성
+// DNA 화면
 // ============================================================
 
 function createDNAInterface() {
@@ -49,7 +51,6 @@ function createDNAInterface() {
     if (document.getElementById("dnaModal")) {
         return;
     }
-
 
     const modal = document.createElement("div");
 
@@ -67,13 +68,12 @@ function createDNAInterface() {
         box-sizing:border-box;
     `;
 
-
     modal.innerHTML = `
 
         <div
             style="
-                width:min(760px,100%);
-                max-height:90vh;
+                width:min(800px,100%);
+                max-height:92vh;
                 overflow-y:auto;
                 background:white;
                 border-radius:22px;
@@ -94,11 +94,7 @@ function createDNAInterface() {
 
                 <div>
 
-                    <h2
-                        style="
-                            margin:0 0 6px;
-                        "
-                    >
+                    <h2 style="margin:0 0 6px;">
                         🧬 나의 CLAY DNA
                     </h2>
 
@@ -113,7 +109,6 @@ function createDNAInterface() {
                     </p>
 
                 </div>
-
 
                 <button
                     id="closeDNAModal"
@@ -133,6 +128,8 @@ function createDNAInterface() {
 
             </div>
 
+
+            <!-- DNA 없음 -->
 
             <div
                 id="dnaEmpty"
@@ -163,12 +160,14 @@ function createDNAInterface() {
                         line-height:1.6;
                     "
                 >
-                    AI 작품 분석을 1개 이상 저장하면
+                    AI 작품 분석을 저장하면
                     나의 창작 DNA를 만들 수 있습니다.
                 </p>
 
             </div>
 
+
+            <!-- DNA 내용 -->
 
             <div
                 id="dnaContent"
@@ -188,9 +187,88 @@ function createDNAInterface() {
                 ></div>
 
 
+                <div id="dnaCards"></div>
+
+
+                <!-- =================================================
+                     작업 스타일 변화
+                ================================================= -->
+
                 <div
-                    id="dnaCards"
-                ></div>
+                    id="styleChangeSection"
+                    style="
+                        margin-top:24px;
+                        border-top:1px solid #eee;
+                        padding-top:24px;
+                    "
+                >
+
+                    <div
+                        style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            margin-bottom:12px;
+                        "
+                    >
+
+                        <div>
+
+                            <h3
+                                style="
+                                    margin:0 0 5px;
+                                "
+                            >
+                                작업 스타일 변화
+                            </h3>
+
+                            <p
+                                style="
+                                    margin:0;
+                                    color:#666;
+                                    font-size:14px;
+                                "
+                            >
+                                시간에 따른 나의 창작 변화
+                            </p>
+
+                        </div>
+
+                        <strong
+                            id="styleChangeCount"
+                            style="
+                                font-size:20px;
+                            "
+                        >
+                            0+
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        id="styleChangeContent"
+                    ></div>
+
+
+                    <button
+                        id="openStyleChange"
+                        type="button"
+                        style="
+                            width:100%;
+                            margin-top:14px;
+                            padding:14px;
+                            border:1px solid #ddd;
+                            border-radius:12px;
+                            background:white;
+                            cursor:pointer;
+                            font-size:15px;
+                        "
+                    >
+                        📈 작품 변천사 자세히 보기
+                    </button>
+
+                </div>
 
 
                 <div
@@ -206,9 +284,9 @@ function createDNAInterface() {
                 >
 
                     현재 DNA는 저장된 작품의 AI 분석 결과를
-                    기반으로 생성된 초기 창작 프로필입니다.
+                    기반으로 만들어집니다.
                     작품과 분석 데이터가 늘어날수록
-                    프로필을 다시 업데이트할 수 있습니다.
+                    개인 창작 스타일을 더 구체적으로 확인할 수 있습니다.
 
                 </div>
 
@@ -236,7 +314,6 @@ function createDNAInterface() {
         </div>
     `;
 
-
     document.body.appendChild(modal);
 
 
@@ -253,6 +330,14 @@ function createDNAInterface() {
         .addEventListener(
             "click",
             generateDNA
+        );
+
+
+    document
+        .getElementById("openStyleChange")
+        .addEventListener(
+            "click",
+            showStyleChangeDetail
         );
 
 }
@@ -298,7 +383,6 @@ async function openDNA() {
 
     const user = auth.currentUser;
 
-
     if (!user) {
 
         showDNAToast(
@@ -309,15 +393,12 @@ async function openDNA() {
 
     }
 
-
     const modal =
         document.getElementById(
             "dnaModal"
         );
 
-
     modal.style.display = "flex";
-
 
     await loadDNA();
 
@@ -325,42 +406,53 @@ async function openDNA() {
 
 
 // ============================================================
-// 기존 DNA 불러오기
+// DNA 불러오기
 // ============================================================
 
 async function loadDNA() {
 
     const user = auth.currentUser;
 
-
     if (!user) {
         return;
     }
 
 
-    const profileRef =
-        doc(
-            db,
-            "users",
-            user.uid,
-            "clayDNA",
-            "profile"
-        );
-
-
     try {
 
+        allWorks =
+            await getUserWorks(
+                user.uid
+            );
+
+
+        allAnalyses =
+            await getAllAnalyses(
+                user.uid,
+                allWorks
+            );
+
+
+        const profileRef =
+            doc(
+                db,
+                "users",
+                user.uid,
+                "clayDNA",
+                "profile"
+            );
+
+
         const snapshot =
-            await getDoc(profileRef);
+            await getDoc(
+                profileRef
+            );
 
 
-        if (
-            snapshot.exists()
-        ) {
+        if (snapshot.exists()) {
 
             dnaProfile =
                 snapshot.data();
-
 
             displayDNA(
                 dnaProfile
@@ -379,7 +471,6 @@ async function loadDNA() {
             error
         );
 
-
         showDNAToast(
             "DNA 정보를 불러오지 못했습니다."
         );
@@ -396,7 +487,6 @@ async function loadDNA() {
 async function generateDNA() {
 
     const user = auth.currentUser;
-
 
     if (!user) {
 
@@ -423,13 +513,13 @@ async function generateDNA() {
 
     try {
 
-        const works =
+        allWorks =
             await getUserWorks(
                 user.uid
             );
 
 
-        if (!works.length) {
+        if (!allWorks.length) {
 
             showDNAToast(
                 "먼저 작품을 등록해 주세요."
@@ -440,14 +530,14 @@ async function generateDNA() {
         }
 
 
-        const analyses =
+        allAnalyses =
             await getAllAnalyses(
                 user.uid,
-                works
+                allWorks
             );
 
 
-        if (!analyses.length) {
+        if (!allAnalyses.length) {
 
             showDNAToast(
                 "먼저 AI 작품 분석을 저장해 주세요."
@@ -460,8 +550,8 @@ async function generateDNA() {
 
         const profile =
             buildDNAProfile(
-                works,
-                analyses
+                allWorks,
+                allAnalyses
             );
 
 
@@ -491,7 +581,6 @@ async function generateDNA() {
             "DNA 생성 오류:",
             error
         );
-
 
         showDNAToast(
             "DNA 생성 중 오류가 발생했습니다."
@@ -548,7 +637,8 @@ async function getUserWorks(uid) {
 
             works.push({
 
-                id: docSnap.id,
+                id:
+                    docSnap.id,
 
                 ...docSnap.data()
 
@@ -564,7 +654,7 @@ async function getUserWorks(uid) {
 
 
 // ============================================================
-// 모든 AI 분석 가져오기
+// AI 분석 전체 가져오기
 // ============================================================
 
 async function getAllAnalyses(
@@ -610,11 +700,17 @@ async function getAllAnalyses(
 
                     analyses.push({
 
+                        id:
+                            docSnap.id,
+
                         workId:
                             work.id,
 
                         workTitle:
                             work.title || "",
+
+                        productionDate:
+                            work.productionDate || "",
 
                         analysis:
                             data.analysis,
@@ -646,55 +742,6 @@ function buildDNAProfile(
     analyses
 ) {
 
-    const form =
-        collectValues(
-            analyses,
-            "form"
-        );
-
-
-    const material =
-        collectValues(
-            analyses,
-            "material"
-        );
-
-
-    const technique =
-        collectValues(
-            analyses,
-            "technique"
-        );
-
-
-    const mood =
-        collectValues(
-            analyses,
-            "mood"
-        );
-
-
-    const formative =
-        collectValues(
-            analyses,
-            "formative"
-        );
-
-
-    const artistCharacteristic =
-        collectValues(
-            analyses,
-            "artistCharacteristic"
-        );
-
-
-    const development =
-        collectValues(
-            analyses,
-            "development"
-        );
-
-
     return {
 
         analyzedWorkCount:
@@ -704,28 +751,59 @@ function buildDNAProfile(
             analyses.length,
 
         formDNA:
-            combineValues(form),
+            combineValues(
+                collectValues(
+                    analyses,
+                    "form"
+                )
+            ),
 
         materialDNA:
-            combineValues(material),
+            combineValues(
+                collectValues(
+                    analyses,
+                    "material"
+                )
+            ),
 
         techniqueDNA:
-            combineValues(technique),
+            combineValues(
+                collectValues(
+                    analyses,
+                    "technique"
+                )
+            ),
 
         moodDNA:
-            combineValues(mood),
+            combineValues(
+                collectValues(
+                    analyses,
+                    "mood"
+                )
+            ),
 
         formativeDNA:
-            combineValues(formative),
+            combineValues(
+                collectValues(
+                    analyses,
+                    "formative"
+                )
+            ),
 
         artistIdentity:
             combineValues(
-                artistCharacteristic
+                collectValues(
+                    analyses,
+                    "artistCharacteristic"
+                )
             ),
 
         development:
             combineValues(
-                development
+                collectValues(
+                    analyses,
+                    "development"
+                )
             ),
 
         updatedAt:
@@ -737,7 +815,7 @@ function buildDNAProfile(
 
 
 // ============================================================
-// 특정 분석 항목 모으기
+// 분석 항목 추출
 // ============================================================
 
 function collectValues(
@@ -767,7 +845,7 @@ function collectValues(
 
 
 // ============================================================
-// 텍스트 결합
+// 중복 제거 후 결합
 // ============================================================
 
 function combineValues(values) {
@@ -797,15 +875,13 @@ function combineValues(values) {
     );
 
 
-    return unique.join(
-        " "
-    );
+    return unique.join(" ");
 
 }
 
 
 // ============================================================
-// Firestore 저장
+// DNA 저장
 // ============================================================
 
 async function saveDNAProfile(
@@ -840,36 +916,20 @@ async function saveDNAProfile(
 
 function displayDNA(profile) {
 
-    const empty =
-        document.getElementById(
-            "dnaEmpty"
-        );
+    document.getElementById(
+        "dnaEmpty"
+    ).style.display = "none";
 
 
-    const content =
-        document.getElementById(
-            "dnaContent"
-        );
+    document.getElementById(
+        "dnaContent"
+    ).style.display = "block";
 
 
     const summary =
         document.getElementById(
             "dnaSummary"
         );
-
-
-    const cards =
-        document.getElementById(
-            "dnaCards"
-        );
-
-
-    empty.style.display =
-        "none";
-
-
-    content.style.display =
-        "block";
 
 
     summary.innerHTML = `
@@ -991,32 +1051,548 @@ function displayDNA(profile) {
     );
 
 
-    cards.innerHTML =
-        html;
+    document.getElementById(
+        "dnaCards"
+    ).innerHTML = html;
+
+
+    updateStyleChangePreview();
 
 }
 
 
 // ============================================================
-// 빈 상태
+// 작업 스타일 변화 미리보기
+// ============================================================
+
+function updateStyleChangePreview() {
+
+    const count =
+        getAnalyzedWorkCount();
+
+
+    document.getElementById(
+        "styleChangeCount"
+    ).textContent =
+        `${count}+`;
+
+
+    const content =
+        document.getElementById(
+            "styleChangeContent"
+        );
+
+
+    if (count < 2) {
+
+        content.innerHTML = `
+
+            <div
+                style="
+                    padding:16px;
+                    background:#f7f7f7;
+                    border-radius:14px;
+                    line-height:1.6;
+                    color:#666;
+                "
+            >
+
+                서로 다른 시점의 작품
+                2개 이상을 AI 분석하면
+                작업 스타일의 변화를 비교할 수 있습니다.
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    const timeline =
+        createStyleTimeline();
+
+
+    content.innerHTML = `
+
+        <div
+            style="
+                background:#f7f7f7;
+                border-radius:14px;
+                padding:16px;
+            "
+        >
+
+            <div
+                style="
+                    font-weight:bold;
+                    margin-bottom:12px;
+                "
+            >
+                ${timeline.length}개의 작품 분석 데이터
+            </div>
+
+            <div
+                style="
+                    line-height:1.8;
+                    color:#555;
+                "
+            >
+                초기 작품부터 최근 작품까지
+                창작 특징의 변화를 확인할 수 있습니다.
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+// ============================================================
+// 분석된 작품 수
+// ============================================================
+
+function getAnalyzedWorkCount() {
+
+    const workIds =
+        new Set();
+
+
+    allAnalyses.forEach(
+        item => {
+
+            if (item.workId) {
+
+                workIds.add(
+                    item.workId
+                );
+
+            }
+
+        }
+    );
+
+
+    return workIds.size;
+
+}
+
+
+// ============================================================
+// 시간순 작품 타임라인
+// ============================================================
+
+function createStyleTimeline() {
+
+    const grouped =
+        new Map();
+
+
+    allAnalyses.forEach(
+        item => {
+
+            if (
+                !grouped.has(
+                    item.workId
+                )
+            ) {
+
+                grouped.set(
+                    item.workId,
+                    item
+                );
+
+            }
+
+        }
+    );
+
+
+    const timeline =
+        Array.from(
+            grouped.values()
+        );
+
+
+    timeline.sort(
+        (a, b) => {
+
+            const dateA =
+                getWorkDate(
+                    a
+                );
+
+            const dateB =
+                getWorkDate(
+                    b
+                );
+
+
+            return dateA - dateB;
+
+        }
+    );
+
+
+    return timeline;
+
+}
+
+
+// ============================================================
+// 작품 날짜
+// ============================================================
+
+function getWorkDate(item) {
+
+    if (
+        item.productionDate
+    ) {
+
+        const date =
+            new Date(
+                item.productionDate
+            );
+
+
+        if (
+            !isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return date;
+
+        }
+
+    }
+
+
+    if (
+        item.createdAt &&
+        item.createdAt.seconds
+    ) {
+
+        return new Date(
+            item.createdAt.seconds * 1000
+        );
+
+    }
+
+
+    return new Date(0);
+
+}
+
+
+// ============================================================
+// 작업 스타일 변화 상세보기
+// ============================================================
+
+function showStyleChangeDetail() {
+
+    const count =
+        getAnalyzedWorkCount();
+
+
+    if (count < 2) {
+
+        showDNAToast(
+            "서로 다른 작품 2개 이상을 AI 분석해 주세요."
+        );
+
+        return;
+
+    }
+
+
+    const timeline =
+        createStyleTimeline();
+
+
+    const overlay =
+        document.createElement(
+            "div"
+        );
+
+
+    overlay.id =
+        "styleChangeModal";
+
+
+    overlay.style.cssText = `
+        position:fixed;
+        inset:0;
+        z-index:10000;
+        background:rgba(0,0,0,0.55);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:20px;
+        box-sizing:border-box;
+    `;
+
+
+    let timelineHTML = "";
+
+
+    timeline.forEach(
+        (item, index) => {
+
+            const analysis =
+                item.analysis || {};
+
+
+            const date =
+                formatDate(
+                    item
+                );
+
+
+            timelineHTML += `
+
+                <div
+                    style="
+                        position:relative;
+                        padding:18px;
+                        margin-bottom:14px;
+                        background:#fafafa;
+                        border-radius:15px;
+                        border:1px solid #e5e5e5;
+                    "
+                >
+
+                    <div
+                        style="
+                            font-size:13px;
+                            color:#888;
+                            margin-bottom:5px;
+                        "
+                    >
+                        ${index + 1}번째 작품
+                        · ${date}
+                    </div>
+
+
+                    <h3
+                        style="
+                            margin:0 0 12px;
+                        "
+                    >
+                        ${escapeHTML(
+                            item.workTitle ||
+                            "작품"
+                        )}
+                    </h3>
+
+
+                    <div
+                        style="
+                            line-height:1.7;
+                            color:#444;
+                        "
+                    >
+
+                        <div>
+                            <b>형태:</b>
+                            ${escapeHTML(
+                                analysis.form || "-"
+                            )}
+                        </div>
+
+                        <div>
+                            <b>기법:</b>
+                            ${escapeHTML(
+                                analysis.technique || "-"
+                            )}
+                        </div>
+
+                        <div>
+                            <b>분위기:</b>
+                            ${escapeHTML(
+                                analysis.mood || "-"
+                            )}
+                        </div>
+
+                        <div>
+                            <b>조형성:</b>
+                            ${escapeHTML(
+                                analysis.formative || "-"
+                            )}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    overlay.innerHTML = `
+
+        <div
+            style="
+                width:min(760px,100%);
+                max-height:90vh;
+                overflow-y:auto;
+                background:white;
+                border-radius:20px;
+                padding:24px;
+                box-sizing:border-box;
+            "
+        >
+
+            <div
+                style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    margin-bottom:20px;
+                "
+            >
+
+                <div>
+
+                    <h2 style="margin:0 0 5px;">
+                        📈 작업 스타일 변화
+                    </h2>
+
+                    <p
+                        style="
+                            margin:0;
+                            color:#666;
+                        "
+                    >
+                        초기 작품부터 최근 작품까지
+                    </p>
+
+                </div>
+
+
+                <button
+                    id="closeStyleChange"
+                    type="button"
+                    style="
+                        border:0;
+                        background:#f1f1f1;
+                        width:40px;
+                        height:40px;
+                        border-radius:50%;
+                        font-size:20px;
+                        cursor:pointer;
+                    "
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <div>
+
+                ${timelineHTML}
+
+            </div>
+
+
+            <div
+                style="
+                    margin-top:18px;
+                    padding:16px;
+                    background:#f7f7f7;
+                    border-radius:14px;
+                    line-height:1.7;
+                    color:#555;
+                "
+            >
+
+                현재 단계에서는 작품별 AI 분석 내용을
+                시간순으로 비교합니다.
+                작품 데이터가 더 쌓이면
+                형태·기법·분위기 등의 변화량을
+                별도의 AI 분석으로 발전시킬 수 있습니다.
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        overlay
+    );
+
+
+    document
+        .getElementById(
+            "closeStyleChange"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                overlay.remove();
+
+            }
+        );
+
+}
+
+
+// ============================================================
+// 날짜 표시
+// ============================================================
+
+function formatDate(item) {
+
+    const date =
+        getWorkDate(item);
+
+
+    if (
+        date.getTime() === 0
+    ) {
+
+        return "날짜 미상";
+
+    }
+
+
+    return date.toLocaleDateString(
+        "ko-KR"
+    );
+
+}
+
+
+// ============================================================
+// DNA 없음
 // ============================================================
 
 function showEmptyDNA() {
 
     document.getElementById(
         "dnaEmpty"
-    ).style.display = "block";
+    ).style.display =
+        "block";
 
 
     document.getElementById(
         "dnaContent"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 
 }
 
 
 // ============================================================
-// 닫기
+// DNA 닫기
 // ============================================================
 
 function closeDNAModal() {
